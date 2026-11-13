@@ -1,0 +1,132 @@
+// Optional browser regression suite. See docs/desk-dashboard.md for setup.
+import assert from 'node:assert/strict';
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
+const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, hasTouch: true, timezoneId: 'America/Indiana/Indianapolis' });
+const page = await context.newPage();
+const errors = [];
+page.on('pageerror', (e) => errors.push(e.message));
+const base = process.env.DASHBOARD_URL || 'http://127.0.0.1:5173';
+const solarDay = {date:'2026-11-13', hi:65, lo:40, code:0, rain:0, sunrise:'2026-11-13T07:23:00', sunset:'2026-11-13T17:31:00'};
+await page.route('**/api/weather', (r) => r.fulfill({json:{temp:58, code:0, day:true, days:[solarDay], updated:'2026-11-13T17:00:00Z'}}));
+await page.addInitScript(() => {
+  if (!localStorage.getItem('desk-smoke-initialized')) {
+    localStorage.setItem('frame-demo', 'on');
+    localStorage.setItem('frame-idle', '0');
+    localStorage.setItem('desk-smoke-initialized', 'yes');
+  }
+});
+await page.clock.install({time: new Date('2026-11-13T12:00:00-05:00')});
+const expectText = async (locator, text) => { await locator.filter({hasText:text}).first().waitFor(); };
+const theme = async () => page.locator('html').getAttribute('data-theme');
+const nav = (name) => page.getByRole('group', {name:'Sections',exact:true}).getByRole('button', {name,exact:true});
+async function fits() {
+  const rect = await page.locator('main').boundingBox();
+  assert.ok(rect.x >= 0 && rect.y >= 0 && rect.x + rect.width <= 1280 && rect.y + rect.height <= 800);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 1280);
+}
+try {
+  await page.goto(base);
+  await expectText(page.locator('body'), 'Today');
+  assert.deepEqual(await page.getByRole('group',{name:'Sections',exact:true}).getByRole('button').allTextContents(), ['Home','Calendar','Tasks','Focus']);
+  assert.equal(await theme(), 'light');
+  await fits();
+  if (process.env.SCREENSHOT_DIR) await page.screenshot({path:process.env.SCREENSHOT_DIR + '/desk-home-light.png'});
+  await nav('Calendar').tap();
+  await page.getByRole('tab',{name:'Month',exact:true}).tap();
+  assert.ok(await page.locator('.cell').count() >= 28);
+  await page.getByRole('button', {name:'Next month',exact:true}).tap();
+  await page.getByRole('button',{name:'Today',exact:true}).tap();
+  await page.getByRole('tab',{name:'Week',exact:true}).tap();
+  await fits();
+  await nav('Tasks').tap();
+  await page.getByRole('button',{name:'Add',exact:true}).tap();
+  await page.getByRole('textbox',{name:'Add to Tasks'}).fill('Cloud touchscreen regression');
+  await page.getByRole('button',{name:'Add',exact:true}).tap();
+  const task = page.getByRole('button',{name:'Complete Cloud touchscreen regression',exact:true});
+  await task.waitFor();
+  await task.tap();
+  await page.clock.runFor(200);
+  assert.equal(await task.count(),0);
+  await page.getByRole('button',{name:'Done',exact:true}).tap();
+  await nav('Focus').tap();
+  await page.getByLabel('Focus minutes',{exact:true}).fill('1');
+  await page.getByLabel('Focus minutes',{exact:true}).press('Tab');
+  await page.getByRole('button',{name:'Start',exact:true}).tap();
+  await page.clock.runFor(10000);
+  assert.match(await page.getByRole('timer').textContent(),/^00:5[01]$/);
+  await page.getByRole('button',{name:'Pause',exact:true}).tap();
+  const paused = await page.getByRole('timer').textContent();
+  await page.clock.runFor(10000);
+  assert.equal(await page.getByRole('timer').textContent(),paused);
+  await page.getByRole('button',{name:'Start',exact:true}).tap();
+  await nav('Home').tap();
+  await page.clock.runFor(10000);
+  await nav('Focus').tap();
+  assert.match(await page.getByRole('timer').textContent(),/^00:(39|40)$/);
+  await page.reload();
+  await nav('Focus').tap();
+  assert.match(await page.getByRole('timer').textContent(),/^00:(39|40)$/);
+  await page.clock.runFor(41000);
+  await expectText(page.getByRole('status'),'Session complete');
+  await page.getByRole('button',{name:'Next session',exact:true}).tap();
+  assert.equal(await page.getByRole('timer').textContent(),'05:00');
+  await fits();
+  if(process.env.SCREENSHOT_DIR) await page.screenshot({path:process.env.SCREENSHOT_DIR + '/desk-focus.png'});
+  await page.getByRole('button',{name:'Settings',exact:true}).tap();
+  await page.getByRole('dialog',{name:'Settings'}).waitFor();
+  await page.getByRole('button',{name:'Dark',exact:true}).tap();
+  assert.equal(await theme(),'dark');
+  await page.getByLabel('Calendar and task refresh').selectOption('15');
+  await page.getByRole('button',{name:'Done',exact:true}).tap();
+  await page.reload();
+  assert.equal(await theme(),'dark');
+  if(process.env.SCREENSHOT_DIR) await page.screenshot({path:process.env.SCREENSHOT_DIR + '/desk-home-dark.png'});
+  await page.getByRole('button',{name:'Settings',exact:true}).tap();
+  assert.equal(await page.getByLabel('Calendar and task refresh').inputValue(),'15');
+  await page.getByRole('button',{name:'Light',exact:true}).tap();
+  assert.equal(await theme(),'light');
+  await page.getByRole('button',{name:'Automatic',exact:true}).tap();
+  if(process.env.SCREENSHOT_DIR) await page.screenshot({path:process.env.SCREENSHOT_DIR + '/desk-settings.png'});
+  await page.keyboard.press('Escape');
+  assert.equal(await page.getByRole('dialog').count(),0);
+  // Force a real scheduled minute tick across each solar boundary.
+  await page.clock.setSystemTime(new Date('2026-11-13T17:30:59-05:00'));
+  await page.clock.runFor(61000);
+  assert.equal(await theme(),'dark');
+  await page.clock.setSystemTime(new Date('2026-11-13T07:22:59-05:00'));
+  await page.clock.runFor(61000);
+  assert.equal(await theme(),'light');
+  await nav('Focus').tap();
+  await page.getByRole('button',{name:'Focus',exact:true}).last().tap();
+  await page.getByLabel('Focus minutes',{exact:true}).fill('5');
+  await page.getByLabel('Focus minutes',{exact:true}).press('Tab');
+  await page.getByRole('button',{name:'Start',exact:true}).tap();
+  await page.getByRole('button',{name:'Settings',exact:true}).tap();
+  await page.getByRole('button',{name:'2 min',exact:true}).tap();
+  await page.getByRole('button',{name:'Done',exact:true}).tap();
+  await page.clock.runFor(121000);
+  await page.getByRole('timer').waitFor(); // active countdown must prevent the idle clock screen
+  // Live-mode API failure: optimistic completion must roll back and remain tappable.
+  const live = await browser.newContext({viewport:{width:1280,height:800}, hasTouch:true});
+  const retry = await live.newPage();
+  retry.on('pageerror', (e) => errors.push(e.message));
+  let attempts = 0;
+  await retry.route('**/api/lists/todo', (r) => r.fulfill({json:{items:[{id:'retry',content:'Retry completion'}]}}));
+  await retry.route('**/api/lists/todo/retry/done', (r) => {
+    attempts++;
+    return r.fulfill({status:attempts === 1 ? 503 : 200, json:attempts === 1 ? {error:'Service unavailable'} : {ok:true}});
+  });
+  await retry.goto(base);
+  const retryTask = retry.getByRole('button',{name:'Complete Retry completion',exact:true});
+  await retryTask.tap();
+  await retry.getByText('Couldn’t refresh', {exact:false}).waitFor();
+  await retryTask.waitFor();
+  assert.equal(await retryTask.isEnabled(),true);
+  await retryTask.tap();
+  await retryTask.waitFor({state:'detached'});
+  assert.equal(attempts,2);
+  await live.close();
+  assert.deepEqual(errors,[]);
+  console.log('PASS: 1280×800 touch navigation, calendar, add/complete task, persistent focus timer, settings, solar boundaries; no page errors.');
+} finally { await browser.close(); }

@@ -86,14 +86,14 @@
   .bar { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 6px 10px; }
   .bar h2 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -.01em; }
   .pager { display: flex; align-items: center; gap: 8px; }
-  .nav { position: relative; width: 52px; height: 44px; border-radius: 12px; background: var(--track); display: grid; place-items: center; color: var(--label); }
+  .nav { position: relative; width: 52px; height: 48px; border-radius: 12px; background: var(--track); display: grid; place-items: center; color: var(--label); }
   .nav:disabled { opacity: .3; }
   .nav:not(:disabled):active { opacity: .6; }
   .badge { position: absolute; top: -6px; right: -6px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: var(--red); color: #fff; font-size: 13px; font-weight: 700; display: grid; place-items: center; }
   .seg { display: flex; padding: 3px; border-radius: 12px; background: var(--track); margin-right: 6px; }
-  .seg button { min-width: 84px; height: 38px; padding: 0 14px; border-radius: 9px; font-size: 17px; font-weight: 500; text-align: center; color: var(--label); }
+  .seg button { min-width: 84px; height: 48px; padding: 0 14px; border-radius: 9px; font-size: 17px; font-weight: 500; text-align: center; color: var(--label); }
   .seg button.on { background: var(--thumb); font-weight: 600; }
-  .today-btn { height: 44px; padding: 0 16px; border-radius: 12px; font-size: 18px; font-weight: 600; color: var(--blue-text); }
+  .today-btn { height: 48px; padding: 0 16px; border-radius: 12px; font-size: 18px; font-weight: 600; color: var(--blue-text); }
   .week { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(7, 1fr); padding: 20px 0; }
   .day { min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: 0 10px; border-left: 1px solid var(--sep); }
   .day:first-child { border-left: 0; }

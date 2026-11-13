@@ -1,9 +1,12 @@
 // Shared app state and the pollers that fill it. Each feed polls only while something on screen
 // needs it (see start()), one request at a time, and unchanged results don't touch the screen.
 import { api, cached, remember, changed, forget, withKey } from './api.js';
-import { dayKey, recipeTitle } from './format.js';
+import { recipeTitle } from './format.js';
 import { demoCalendar, demoList, demoMeta } from './demo.js';
 import { ha, announce } from './ha.svelte.js';
+import { resolveTheme } from './theme.js';
+import { focus } from './focus.svelte.js';
+import { remaining } from './focus.js';
 
 const MIN = 60 * 1000;
 const QUIET_FROM = 22, QUIET_TO = 7; // quiet hours: messages are shown but not read aloud
@@ -24,6 +27,7 @@ const pref = (k, d) => { try { return localStorage.getItem('frame-' + k) || d; }
 export const ui = $state({
   tab: 'home', idle: false, theme: 'light', settingsOpen: false,
   themePref: pref('theme', 'auto'),          // auto | light | dark
+  refreshMinutes: [1, 5, 15].includes(Number(pref('refresh', '5'))) ? Number(pref('refresh', '5')) : 5,
   idleMinutes: Number(pref('idle', '5')),    // 0 = never
   nightPhotos: pref('night-photos', 'on') === 'on', // slideshow after sunset (dimmed)
   demo: pref('demo', 'off') === 'on',          // sample data instead of real calendars, lists, photos
@@ -31,6 +35,7 @@ export const ui = $state({
   announceOn: pref('announce', DEFAULT_SPEAKER), // speaker that reads messages aloud, or 'off'
 });
 export function setSetting(key, value) {
+  if (key === 'refreshMinutes' && [1, 5, 15].includes(value)) { ui.refreshMinutes = value; localStorage.setItem('frame-refresh', String(value)); }
   if (key === 'themePref') { ui.themePref = value; localStorage.setItem('frame-theme', value); applyTheme(); }
   if (key === 'idleMinutes') { ui.idleMinutes = value; localStorage.setItem('frame-idle', String(value)); rearmIdle(); }
   if (key === 'announceOn') { ui.announceOn = value; localStorage.setItem('frame-announce', value); }
@@ -101,6 +106,10 @@ export function loadCalendar() {
       calendar.offline = true;
     }
   });
+}
+
+export async function refreshFeeds() {
+  await Promise.all([loadCalendar(), loadWeather(), loadList('todo')]);
 }
 
 function loadWeather() {
@@ -267,21 +276,10 @@ function every(ms, fn, when = () => true) {
 // Light from sunrise to sunset, dark otherwise (7 AM / 7 PM until weather arrives).
 // Pin it with ?theme=light or ?theme=dark; ?theme=auto goes back to following the sun.
 const themeParam = new URLSearchParams(location.search).get('theme');
-if (themeParam) { localStorage.setItem('frame-theme', themeParam); ui.themePref = themeParam; }
+if (['auto', 'light', 'dark'].includes(themeParam)) { localStorage.setItem('frame-theme', themeParam); ui.themePref = themeParam; }
 
 function applyTheme() {
-  let dark;
-  if (ui.themePref === 'light' || ui.themePref === 'dark') {
-    dark = ui.themePref === 'dark';
-  } else {
-    const now = clock.now;
-    const today = weather.data && weather.data.days.find((d) => d.date === dayKey(now));
-    const at = (h) => new Date(now.getFullYear(), now.getMonth(), now.getDate(), h);
-    const rise = today && today.sunrise ? new Date(today.sunrise) : at(7);
-    const set = today && today.sunset ? new Date(today.sunset) : at(19);
-    dark = now < rise || now >= set;
-  }
-  ui.theme = dark ? 'dark' : 'light';
+  ui.theme = resolveTheme(ui.themePref, clock.now, weather.data);
   document.documentElement.setAttribute('data-theme', ui.theme);
 }
 
@@ -292,10 +290,10 @@ export function start() {
     applyTheme();
     setTimeout(tick, MIN - (Date.now() % MIN) + 50);
   })();
-  every(5 * MIN, loadCalendar);
+  every(() => ui.refreshMinutes * MIN, loadCalendar);
   every(15 * MIN, loadWeather);
   // Tasks show on Home and Tasks; Groceries only on its own tab (App loads a list when its tab opens).
-  every(MIN, () => loadList('todo'), () => !ui.idle);
+  every(() => ui.refreshMinutes * MIN, () => loadList('todo'), () => !ui.idle && ['home', 'todo'].includes(ui.tab));
   every(MIN, () => loadList('groceries'), () => !ui.idle && ui.tab === 'groceries');
   // Photos: once at start (for the next slide), then while the clock screen is up and showing photos.
   let photosOnce = true;
@@ -313,7 +311,7 @@ let idleTimer;
 function rearmIdle() {
   clearTimeout(idleTimer);
   if (!ui.idleMinutes) return;
-  idleTimer = setTimeout(() => { ui.idle = true; ui.tab = 'home'; ui.settingsOpen = false; loadPhotos(); }, ui.idleMinutes * MIN);
+  idleTimer = setTimeout(() => { if (focus.session.running && remaining(focus.session, Date.now()) > 0) { rearmIdle(); return; } ui.idle = true; ui.tab = 'home'; ui.settingsOpen = false; loadPhotos(); }, ui.idleMinutes * MIN);
 }
 
 // Play button: show the clock screen / slideshow now.
