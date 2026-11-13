@@ -25,7 +25,7 @@
 
   // Selected day: today in the current month, the 1st otherwise; reset when the month changes.
   let picked = $state(null);
-  let lastOffset = offset;
+  let lastOffset;
   $effect(() => { if (offset !== lastOffset) { lastOffset = offset; picked = null; } });
   let selected = $derived(cells.find((c) => c.key === picked) || cells.find((c) => (offset === 0 ? c.today : c.inMonth && c.day.getDate() === 1)));
   const WEEKDAYS = Array.from({ length: 7 }, (_, i) => new Date(2026, 1, i + 1).toLocaleDateString([], { weekday: 'short' })); // Feb 1 2026 is a Sunday

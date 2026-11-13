@@ -11,14 +11,15 @@
   let rest = $derived([section, item.note].filter(Boolean).join(' · '));
 
   // The ring fills first, then the row goes, so a tap feels confirmed.
-  function tap() {
+  async function tap() {
     if (checking) return;
     checking = true;
-    setTimeout(() => ondone(item), 350);
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    try { await ondone(item); } finally { checking = false; }
   }
 </script>
 
-<button class="row" class:checking class:plain={!lines} onclick={tap} aria-label={'Complete ' + item.content}>
+<button class="row" class:checking class:plain={!lines} disabled={checking} onclick={tap} aria-label={'Complete ' + item.content}>
   <span class="ring">{#if checking}<Icon name="check" size={17} />{/if}</span>
   <span class="body">
     <span class="main">

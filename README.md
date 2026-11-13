@@ -1,5 +1,7 @@
 # Photo Frame Dashboard
 
+This fork now provides a personal desk interface for the **PF1007L (1280×800, Android 6.0.1, WebView 106)**: Home, Calendar, Tasks and Focus, with the original day/night design. See [desk dashboard development and Mac/ADB handoff](docs/desk-dashboard.md) for configuration, tests, and device validation. The original integrations below are retained.
+
 A calm family dashboard for a cheap Android photo frame on the kitchen wall: clock, weather, the
 family calendar, Todoist tasks and groceries, recipes, music controls, messages from AI agents,
 and a photo slideshow when nobody's looking. It runs on a ~$50 frame and a Cloudflare Worker.

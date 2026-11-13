@@ -8,8 +8,9 @@
   import Settings from './components/Settings.svelte';
   import Music from './views/Music.svelte';
   import Recipes from './views/Recipes.svelte';
+  import Focus from './views/Focus.svelte';
   import Message from './components/Message.svelte';
-  import { connectHA, haConfigured } from './lib/ha.svelte.js';
+  import { connectHA } from './lib/ha.svelte.js';
   import { ui, clock, weather, photos, messages, start, startSlideshow, loadList, photosVisible } from './lib/state.svelte.js';
   import { noteAlbum, prepare } from './lib/slides.js';
   import { time, weatherInfo } from './lib/format.js';
@@ -17,11 +18,8 @@
   const TABS = [
     { id: 'home', label: 'Home' },
     { id: 'calendar', label: 'Calendar' },
-    { id: 'groceries', label: 'Groceries' },
     { id: 'todo', label: 'Tasks' },
-    { id: 'recipes', label: 'Recipes' },
-    // Music appears once the frame has a Home Assistant token (see docs/frame.md).
-    ...(haConfigured() ? [{ id: 'music', label: 'Music' }] : []),
+    { id: 'focus', label: 'Focus' },
   ];
   let wx = $derived(weather.data);
   let info = $derived(wx ? weatherInfo(wx.code, wx.day) : null);
@@ -42,11 +40,11 @@
 
 <div class="stage">
   <header class="top">
-    <nav class="seg" role="tablist" aria-label="Sections">
+    <div class="seg" role="group" aria-label="Sections">
       {#each TABS as t (t.id)}
-        <button role="tab" aria-selected={ui.tab === t.id} class:on={ui.tab === t.id} onclick={() => (ui.tab = t.id)}>{t.label}</button>
+        <button aria-pressed={ui.tab === t.id} class:on={ui.tab === t.id} onclick={() => (ui.tab = t.id)}>{t.label}</button>
       {/each}
-    </nav>
+    </div>
     <div class="edge right">
       {#if ui.tab !== 'home'}<span class="num now">{time(clock.now)}</span>{/if}
       {#if wx}<span class="wx {info.tint}"><Icon name={info.icon} size={26} /></span><span class="num">{wx.temp}°</span>{/if}
@@ -61,6 +59,7 @@
     {#if !ui.idle}
     {#if ui.tab === 'home'}<Home />
     {:else if ui.tab === 'calendar'}<Week />
+    {:else if ui.tab === 'focus'}<Focus />
     {:else if ui.tab === 'music'}<Music />
     {:else if ui.tab === 'recipes'}<Recipes />
     {:else if ui.tab === 'groceries'}<List name="groceries" title="Groceries" accent="var(--orange)" accentText="var(--orange-text)" />
