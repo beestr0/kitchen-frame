@@ -36,3 +36,4 @@ kiosk/deps-lan-tls/
 kiosk/build-auth-probe/
 kiosk/build-auth-tests/
 kiosk/build-auth-candidate/
+kiosk/build-auth-rollback/

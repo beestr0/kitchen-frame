@@ -5,28 +5,51 @@ as the only selected collection throughout hardening. Existing iCloud reminders,
 default lists, calendar preparation, weather, Jellyfin and Tailscale remain intact.
 This document is a plan, not approval to migrate personal data or reboot the host.
 
-## Autonomous development progress — November 14, 2026
+## Verified authentication activation — November 14, 2026
 
-An opt-in native/device/server implementation and isolated tests are now prepared;
-see [protocol, actual device findings and controlled activation](pf1007l-device-auth.md).
-It is **not deployed**. The working `3a74a35` demo remains intact. P-256 signing,
-validated native TLS, cross-runtime verification, app-launch persistence and the
-origin-aware WebView feature passed on the physical frame; Keystore is software-
-backed. Do not enroll without owner review. Sudo was unavailable and no interactive
-prompt was opened during the owner's absence.
+Device-v1 is now deployed for the disposable collection after owner risk acceptance,
+physical fingerprint verification and controlled enrollment. Read [actual activation
+results](pf1007l-device-auth-activation.md) before repeating any procedure. Continuous
+renewal across 32 minutes, app/backend restart, network loss, natural expiry during
+an actual 16-minute bridge-only outage, revocation/re-enablement and the owner-
+confirmed phone round trip passed. Debugging and privileged test session are off.
+Original backup remains private/restorable; 195 automated tests passed.
 
-Reliability source changes cover transactional cache/revision publication, bounded
-backoff/Retry-After, pending-write recovery, stricter hrefs, recurrence safety and
-bridge survival during Radicale outages. Fixture testing cannot replace cellular,
-full native-session, reboot, restore or multi-day acceptance. Those gates below
-remain open. No new features, provider, production list or migration was activated.
+**Next priority is cellular/Tailscale/background-fetch acceptance**, then actual
+recurrence semantics and multi-day stability/restore. Full Linux reboot still needs
+its own maintenance-window approval. No production/personal migration is approved.
+
+## Next implementation sequence and evidence gates
+
+1. **Cellular/Tailscale reconnection:** first add a sanitized timestamp/UID test
+   worksheet and non-destructive health checks. With the owner operating the iPhone,
+   exercise Wi-Fi → cellular → Wi-Fi, disconnected/reconnected Tailscale and offline
+   phone edits using new disposable tasks. Record creation, discovery, completion
+   and recovery delays at each hop; check unchanged identifiers and no duplicates.
+2. **Background synchronization:** separately measure locked-phone and closed-app
+   fetch at the existing account settings, including after network transitions.
+   Report observed latency rather than promise push delivery. Any Fetch-setting
+   change needs owner participation; do not change defaults or other accounts.
+3. **Recurrence:** keep frame recurring completion blocked. Create disposable daily,
+   weekly and month-end/date-only/timed examples on the phone; capture sanitized
+   VTODO revisions before/after phone completion and add compatibility fixtures.
+   Enable occurrence completion only after proving one advancement, alarm/exception
+   preservation, conflict handling and retry idempotency across timezone/DST cases.
+4. **Stability/recovery:** run a multi-day synthetic soak, track bounded memory and
+   sanitized failure counters, and rehearse backup restore in isolated storage.
+   Verify preserved IDs, completion history and operation reconciliation. Test
+   delayed startup dependencies before a separately approved whole-server reboot.
+
+Each phase retains demo-only scope, stale-write blocking, validated TLS and the
+current working deployment as baseline. No new feature is activated merely by
+writing fixtures or a plan. Physical cellular/background tests cannot be certified
+by server-side mocks alone.
 
 ## Priority 1 — durable, revocable device enrollment
 
-**Next implementation step:** controlled demonstration activation/physical acceptance
-of the prepared native enrollment and renewable-session candidate. Leave the current
-demo/session working until its replacement passes acceptance; follow the linked
-runbook, not a fresh installation.
+**Status:** demonstration activation/physical acceptance passed. Preserve the
+working device-v1 deployment and original backup. The checklist below remains
+reference for a new device or future hardening, not instructions to repeat setup.
 
 1. Inspect the actual Android/WebView and app signing identity, available Keystore
    algorithms and persistence behavior. Do not assume hardware-backed/non-exportable
@@ -108,6 +131,11 @@ safe across conflicts/restarts/offline use. If compatibility cannot be establish
 retain phone-only recurring completion rather than silently degrade reminders.
 
 ## Priority 5 — sustained reliability, observability and restore
+
+Checkpoint retesting exposed one intermittent three-second loopback HTTP fixture
+timeout; the unchanged test and all six HTTP boundary tests passed on rerun.
+Investigate fixture timing/cleanup under disk load before widening coverage; preserve
+production deadlines and security checks.
 
 Run a multi-day synthetic soak including completion during slow/lost responses,
 auth revocation, 429/5xx, malformed/partial multistatus, clock changes, cache expiry,

@@ -1,9 +1,20 @@
-# Renewable device authentication — candidate, not activated
+# Renewable device authentication — activated disposable demo
 
-The running demo remains checkpoint `3a74a35`, including its temporary cookie.
-This session prepared a replacement; it did **not** enroll the kiosk, change live
-credentials, install the candidate over the working app, or restart services.
-Sudo was unavailable noninteractively, so privileged deployment was skipped.
+The owner approved the reviewed software-backed/physical-access tradeoff and the
+controlled activation. Compatible backend/UI and candidate APK v5 are installed;
+the physically verified device is enrolled and device-v1 is active. The original
+working deployment has a private restorable backup. Read the [live acceptance
+report](pf1007l-device-auth-activation.md) before any operational action; do not
+repeat installation or enrollment. This remains disposable-demo-only.
+
+## Updated security gate
+
+Read [the subsequent physical-access review and controlled plan](pf1007l-auth-security-review.md)
+first. The frame additionally reports root ADB, disabled ADB authentication/SELinux,
+and unencrypted storage. Software Keystore alone cannot protect against physical
+or OS takeover here. The owner accepted this risk for the disposable demo; production remains
+unauthorized. The same-version/signer rollback APK and frozen review bundle remain available;
+current phase results are recorded in the live report.
 
 ## Protocol and security boundary
 
@@ -57,9 +68,10 @@ before enrolling the real kiosk. No provider password is needed on the frame.
 
 The candidate APK is built and signature-verified using retained dependencies,
 without downloads, into ignored `kiosk/build-auth-candidate/`. Its native-auth flag
-is off by default and can only be changed in the physical escape menu. It has **not**
-been installed over the working app. Full native proof → cookie → renewal behavior
-still needs controlled acceptance on that app; unit tests alone do not prove it.
+was off during compatibility verification and was enabled only through the physical
+escape menu after owner fingerprint approval. Native proof → cookie → automatic
+renewal has now passed a 32-minute physical-frame observation. Recovery/revocation
+acceptance also passed; consult the live report for results and limitations.
 
 ## Reproducible checks
 
@@ -90,7 +102,7 @@ The separate probe is left installed but stopped. It can be rebuilt with `python
 `--webview` reuses the already-built candidate's AndroidX code, still under the probe
 UID. Do not install `frame-auth-candidate.apk` as an incidental test step.
 
-## Next controlled deployment and acceptance
+## Controlled deployment reference — consult live status before repeating
 
 1. Read this document and review the software-backed key limitation with the owner.
    Recover a new scoped native sudo session only when the owner is present. Do not

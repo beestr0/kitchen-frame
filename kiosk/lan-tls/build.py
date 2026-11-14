@@ -11,8 +11,22 @@ from prepare_build import KIOSK,OUT,main as prepare
 
 def main():
     candidate='--auth-candidate' in sys.argv
-    out=KIOSK/'build-auth-candidate' if candidate else OUT
-    prepare(out,offline=candidate)
+    rollback='--auth-rollback' in sys.argv
+    if candidate and rollback:raise RuntimeError('Choose candidate or rollback, not both')
+    out=KIOSK/('build-auth-rollback' if rollback else 'build-auth-candidate') if candidate or rollback else OUT
+    prepare(out,offline=candidate or rollback)
+    if rollback:
+        # Same version/signature as candidate: reinstall can preserve app data
+        # without relying on Android's downgrade permission or uninstalling.
+        baseline=subprocess.check_output(['git','show','3a74a35:kiosk/src/com/huntsyea/frame/MainActivity.java'],cwd=KIOSK,text=True)
+        anchor='    if (url != null) { web.loadUrl(url); handler.postDelayed(watchdog, WATCHDOG_MS); }'
+        end='        + "com.huntsyea.frame/.MainActivity -d &lt;url&gt;</code></body>", "text/html", "utf-8");'
+        start=baseline.index(anchor);stop=baseline.index(end,start)+len(end)
+        baseline=baseline[:start]+'    LanTlsProxy.install(this, () -> {\n'+baseline[start:stop]+'\n    });'+baseline[stop:]
+        source=out/'src/com/huntsyea/frame'
+        (source/'MainActivity.java').write_text(baseline)
+        for name in ('DeviceAuthController.java','DeviceKey.java','DevicePolicy.java','DeviceTransport.java'):
+            (source/name).unlink()
     sdk=Path(os.environ.get('ANDROID_HOME','/opt/homebrew/share/android-commandlinetools'))
     tools=sdk/'build-tools/34.0.0';platform=sdk/'platforms/android-34/android.jar'
     jdk=Path(os.environ.get('JAVA_HOME','/opt/homebrew/opt/openjdk@17'))
@@ -25,7 +39,7 @@ def main():
     generated=out/'generated';generated.mkdir(exist_ok=True)
     unsigned=out/'unsigned.apk'
     run([tools/'aapt2','link','--manifest',out/'AndroidManifest.xml','-I',platform,'-o',unsigned,
-         '--min-sdk-version','23','--target-sdk-version','27','--version-code','5' if candidate else '4','--version-name','1.4-auth-candidate' if candidate else '1.3-lan-tls',
+         '--min-sdk-version','23','--target-sdk-version','27','--version-code','5' if candidate or rollback else '4','--version-name','1.3-rollback-v5' if rollback else '1.4-auth-candidate' if candidate else '1.3-lan-tls',
          '--auto-add-overlay','--java',generated,'--extra-packages',':'.join(deps['packages']),*resources])
     classes=out/'classes';classes.mkdir(exist_ok=True)
     sources=list((out/'src').rglob('*.java'))+list(generated.rglob('*.java'))
@@ -37,7 +51,7 @@ def main():
     aligned=out/'aligned.apk';run([tools/'zipalign','-f','4',unsigned,aligned])
     key=Path.home()/'.android/debug.keystore'
     if not key.exists():raise RuntimeError('Original signing key missing; refusing to create a replacement')
-    apk=out/('frame-auth-candidate.apk' if candidate else 'frame-test-lan-tls.apk')
+    apk=out/('frame-auth-rollback.apk' if rollback else 'frame-auth-candidate.apk' if candidate else 'frame-test-lan-tls.apk')
     run([tools/'apksigner','sign','--ks',key,'--ks-pass','pass:android','--key-pass','pass:android','--out',apk,aligned])
     run([tools/'apksigner','verify','--verbose','--print-certs',apk])
     print('Prepared APK only:',apk)

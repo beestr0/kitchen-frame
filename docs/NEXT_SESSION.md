@@ -1,47 +1,20 @@
 # PF1007L — next session
 
-Checkpoint: November 14, 2026, autonomous authentication/reliability development.
-Branch: `feat/pf1007l-https-weather-handoff`. Source checkpoint subject:
-`Prepare renewable device authentication and resilient demo synchronization`.
-Identify its exact commit with `git log -1 --oneline -- docs/NEXT_SESSION.md`.
-**Running deployment remains `3a74a35`; this candidate is not activated.** No PR/merge.
-
-## Autonomous session result — read this before deployment
-
-- Prepared opt-in P-256 device proof, owner-managed revocable public-key registry,
-  15-minute server-enforced sessions, proactive native renewal, per-session CSRF,
-  hash-only session storage, rate limits and no IP/legacy fallback in device mode.
-- Added origin-aware native WebView channel, fixed-audience TLS transport,
-  restricted navigation/resources and physical enrollment/rollback controls. Built
-  and signature-verified the candidate APK without installing over the working app.
-- Actual separate-UID probe on the frame: API23, signing + Linux verification,
-  identity persistence across launches, wrong-audience rejection, validated native
-  HTTPS and WEB_MESSAGE_LISTENER support all passed. **hardwareBacked=false**:
-  owner must review software-backed Keystore/unsupported-OS risk before enrollment.
-- Added atomic snapshot/revision publication, bounded outage backoff/jitter,
-  Retry-After, private SQLite state, pending-write reconciliation across polls and
-  restarts, stricter DAV paths and recurrence/ambiguous-resource gates. Candidate
-  bridge unit keeps stale-cache service alive when Radicale stops; unit syntax passed.
-- No noninteractive sudo authorization remained. Per the absence instructions,
-  privileged deployment was skipped. No live credentials read/reset, no live task writes,
-  no services restarted, no phone/default-list/iCloud changes and no new Serve mapping.
-- Read [device-auth design, acceptance and exact staged resume steps](pf1007l-device-auth.md)
-  before changing anything. Remaining gates: owner review + scoped sudo, controlled
-  candidate deployment and physical cookie/renewal/revocation tests, cellular phone
-  tests, real recurrence semantics, soak/restore and a separately approved reboot.
-
+November 14, 2026: **persistent device authentication activated and demo acceptance
+passed**. Branch `feat/pf1007l-https-weather-handoff`; reviewed core checkpoint
+`8aade81` supplies the deployed core. The following Git checkpoint records the
+verified activation tooling, recovery tests and documentation. Use `git log -1`
+and the branch upstream to identify its final commit; no deployment is required
+to restore this source checkpoint. No production/personal migration is authorized.
 
 ## Exact resume procedure
 
-1. Run `git status --short --branch` and `git log -1 --oneline`; stay on the current
-   feature branch and preserve any later local work. The checkpoint is pushed only
-   to the existing `origin` fork (`beestr0/kitchen-frame`), not merged to main.
-2. Read this handoff and [hardening priorities](pf1007l-reminders-hardening.md).
-   **Next step: review and activate the tested device-auth candidate in controlled
-   demo acceptance**, following [the activation runbook](pf1007l-device-auth.md).
-   Software-backed key acceptance and fresh scoped sudo are required. Do not start
-   another provider or migrate any personal task list.
-3. Use `ssh -o BatchMode=yes pf1007l-mint` for read-only health checks:
+1. `git status --short --branch` and `git log -1 --oneline`. Preserve local work and
+   remain on the existing feature branch. Do not repeat setup, discovery or enrollment.
+2. Read [verified activation report](pf1007l-device-auth-activation.md),
+   [security/rollback plan](pf1007l-auth-security-review.md), then
+   [remaining hardening priorities](pf1007l-reminders-hardening.md).
+3. Read-only health through **`ssh -o BatchMode=yes pf1007l-mint`**:
 
    ```sh
    systemctl is-active pf1007l-reminders-demo.service pf1007l-reminders-bridge.service pf1007l-proxy.service pf1007l-proxy-https.service jellyfin tailscaled
@@ -50,179 +23,137 @@ Identify its exact commit with `git log -1 --oneline -- docs/NEXT_SESSION.md`.
    curl --fail --silent --max-time 8 --resolve beestr0.duckdns.org:8789:10.157.1.115 https://beestr0.duckdns.org:8789/__proxy_health
    ```
 
-4. Do not rerun installation. Check the current frame IP if it cannot connect; .76
-   was last verified. The native privileged session is deliberately finished. If a
-   new reviewed privileged phase needs sudo, stage its reviewed script and atomically
-   queue its phase/checksum **before** opening `integration_native.sh` in a NEW native
-   Terminal; the old queued `finish` action otherwise exits immediately. Verify the
-   actual prompt. Never collect a password in chat or reuse the expired SSH socket.
-5. Re-run only checks appropriate to the next change. Commands for the current
-   suite: `npm test` and `npx vite build --config vite.config.reminders.js` in
-   `dashboard/`; Python unittest discovery in `deploy/lan-proxy/tests`, `deploy/ssh`,
-   and `deploy/reminders` (bridge fixtures need the installed vobject runtime on Mint).
-   Also run `node --test scripts/reminders-demo-proxy.test.mjs` from the repo root.
-   Physical evidence remains ignored; no task data/credentials belong in commits.
-   Candidate fixture sources (not a service) are staged privately at
-   `/home/hub/pf1007l-autonomous-tests.xc2ZzG`. Run the full Reminders fixture suite
-   there using `/opt/pf1007l-reminders-demo/venv/bin/python -m unittest discover -v`.
-   Build the offline APK with `python3 kiosk/lan-tls/build.py --auth-candidate`;
-   output `kiosk/build-auth-candidate/frame-auth-candidate.apk` is ignored and is
-   **not** the APK currently installed on the working kiosk. A disposable capability
-   probe remains installed as `com.huntsyea.frame.authprobe`; it is not enrolled and
-   has a separate key/application UID. It finishes back to the working kiosk.
+4. **Next implementation priority: controlled cellular/Tailscale reconnection and
+   background-fetch acceptance**, using disposable tasks only. Then actual recurring
+   reminder semantics, multi-day reliability/restore and a separately approved full
+   Linux reboot. Do not start another provider or migrate personal lists.
+5. The scoped native root session was deliberately **finished**. No password is
+   needed for ordinary runtime authentication. Do not assume an old Terminal or
+   temporary SSH socket still holds authorization. If a new approved privileged
+   phase is needed, use a NEW native Terminal and
+   `python3 /Users/beestrother/Projects/kitchen-frame/deploy/reminders/activate_native.py --resume`.
+   It privately prompts, pins the controller and resumes the existing root-private
+   checkpoint/backup. `--recover` expects a restored legacy baseline and is wrong
+   for this active device-v1 deployment. Do not queue old deploy/finish actions.
+6. Run only relevant tests. Dashboard `npm test`; Node proxy
+   `node --test scripts/reminders-demo-proxy.test.mjs`; Python discovery under
+   `deploy/reminders`, `deploy/lan-proxy/tests`, `deploy/ssh`, `deploy/icloud-calendar/tests`.
+   Reminders vobject/dateutil runtime is installed on Mint; fixture stage
+   `/home/hub/pf1007l-autonomous-tests.xc2ZzG` is source/test-only, not a service.
+   Its files are at the directory root: run `python -m unittest discover -s .`
+   there using `/opt/pf1007l-reminders-demo/venv/bin/python`. Local HTTPS listener
+   tests require permission to bind loopback sockets.
 
-## Current result — verified demo loop
+## Checkpoint verification and recovery
 
-The iPhone's native Reminders account is connected successfully. **Do not repeat
-installation or account discovery troubleshooting.** Only the disposable
-`PF1007L Test` collection is integrated; no existing iCloud reminders/defaults changed.
+The activation checkpoint contains only source, tests and documentation: fixed-scope
+native authorization/deployment helpers, readiness/rollback regression tests,
+same-signer/same-version rollback build support, and the security/activation runbooks.
+Runtime settings, device credentials, cookies, private keys, APKs, task databases,
+backups and physical-device diagnostics remain outside Git. The original private
+Linux backup is necessary for operational rollback; GitHub is not a credential or
+task-data backup. Complete tracked-history and proposed-source-tree secret scans
+passed before the checkpoint was committed.
 
-Verified: phone edit → Radicale → actual frame Tasks/Week/Month → completion tapped
-on frame → Radicale → owner-confirmed completion on iPhone. The return to iPhone
-was delayed until a later app refresh, so this is not instant push. Owner then
-completed the undated test on iPhone; the frame removed it automatically without
-reload. Siri explicitly created `Siri dashboard pilot` in the demo list; its new UID
-and automatic appearance in frame Tasks were verified. That reminder remains open.
+The fork is `https://github.com/beestr0/kitchen-frame`, branch
+`feat/pf1007l-https-weather-handoff`. To inspect or recover source independently of
+the live deployment, clone the fork into a separate directory and check out the
+checkpoint commit reported in the session. Do not reset a later working tree or
+run deployment helpers as an incidental Git recovery step. The checkpoint itself
+requires no dashboard/service restart, enrollment or credential change.
 
-Read [integration results, security limits and rollback](pf1007l-reminders-integration.md).
-The older [pilot status](pf1007l-reminders-pilot-status.md) includes historical
-pending/failed checkpoints; its latest section is superseded by this handoff.
+### Checkpoint test rerun
 
-## Persistent access and running services
+All 195 distinct relevant tests succeeded across the checkpoint runs: dashboard 62,
+proxy/TLS 48, Node demo proxy 5, SSH 3, inactive iCloud preparation 10, and Reminders
+67. The initial 67-test run had one three-second loopback HTTP timeout in the old-CSRF
+regression (66 passed); that unchanged test passed alone, then all six HTTP boundary
+tests passed together. No timeout/security check was relaxed. Preserve this timing
+flakiness as a follow-up, not an unqualified claim of a clean first run. Mint's
+source-only fixture stage retains `checkpoint-tests.log` and
+`checkpoint-http-retest.log`; these logs are not Git artifacts. Fixture modules and
+their imported core match local source. Deployment health remained good with no
+service restart/redeployment during checkpoint creation.
 
-- Use **`ssh -o BatchMode=yes pf1007l-mint`**. Dedicated Ed25519 key on the Mac,
-  strict remembered-host verification; BatchMode also passed with the agent disabled.
-  Never recreate the expired temporary SSH control socket. See
-  [SSH instructions](../deploy/ssh/README.md). Sudo remains a separate private prompt.
-- Mint: `hub@10.157.1.115`. Frame is now **10.157.1.76**, verified by physical ADB.
-  Its DHCP address changed from .247; only the dedicated HTTPS nftables table/client
-  allowlist and demo bootstrap were updated. No router or unrelated firewall changes.
-- **Saved frame demo URL:** `https://beestr0.duckdns.org:8789/__reminders-demo/`.
-  Original weather dashboard stays at `https://beestr0.duckdns.org:8789/`.
-- Radicale 3.9.1: `pf1007l-reminders-demo.service`, loopback 5238, existing root-private
-  credential and VTODO collection preserved. No credential reset/reinstallation.
-- Private iPhone endpoint: `https://hub-inspiron-5570.tailb76e1b.ts.net:443/` via
-  Tailscale Serve to loopback Radicale; **Funnel remains off**.
-- New `pf1007l-reminders-bridge.service`: loopback 5240, fixed demo collection,
-  private SQLite last-good state/operation ledger. Approximately 17–18 MB cgroup RAM;
-  Radicale about 22–24 MB. Mac/USB is not a runtime dependency.
-- HTTPS proxy, HTTP demo service, Radicale, bridge, Jellyfin and Tailscale were all
-  active at final check. HTTPS health had zero upstream errors; Jellyfin health 200.
-- Native scoped integration session was finished deliberately. Check
-  `/home/hub/pf1007l-reminders-stage.LEZsOd/integration-status.json`; do not assume
-  an old Terminal still holds a root session. Start a new scoped native session only
-  when a new privileged action actually needs it, without reinstalling components.
-- Frame left on Home in the local demo build; automatic theme preference `auto`,
-  live Indianapolis weather preserved. Temporary WebView debugging and USB port
-  forwarding are off. HomeHQ remains installed/data intact; default launcher unchanged.
+## Current verified result
 
-## Isolation and actual implementation
+- Actual kiosk v5 `1.4-auth-candidate` installed in place, same signer/UID and app
+  data. Owner physically verified public fingerprint and enabled native mode.
+- One authorized device, device-v1, signed one-use proofs, server-enforced 900-second
+  sessions with automatic renewal. Legacy cookie rejected; no weaker auto fallback.
+- **32-minute continuous observation passed**: 44 healthy samples, two automatic
+  renewals, zero reloads/manual renewal/password. App process restart, real bridge
+  restart, 90-second browser-network loss (4.023-second automatic recovery), and
+  960-second actual bridge outage with natural session expiry all passed.
+- Expired-session fresh proof succeeded with **debugging off**, ~5.4 seconds after
+  scheduled restart; healthy recovery observed within 22.65 seconds. Independent
+  recovery timer fired and was collected. No clock/session-duration manipulation.
+- Revocation rejected existing reads/renewal/completion, removed sessions and disabled
+  UI writes. Controlled re-enablement/new epoch recovered automatically with fresh proof.
+- Owner-confirmed iPhone create/edit → same task/correct frame Calendar date → frame
+  completion → iPhone completion, due date preserved. Original Siri demo still open;
+  existing iCloud/default lists untouched. Native CalDAV fetch can be delayed.
+- **195 tests passed**; core runtime code/unit hashes match `8aade81`.
+- Settled views/themes ~59.99–60.16 FPS; final Home 59.77 FPS, no >50 ms gap.
+  Earlier transition/minute-theme samples had 55.7–60.2 FPS and occasional long gaps;
+  do not claim universally jank-free transitions.
+- All services healthy/enabled as appropriate, HTTPS upstream errors zero, Jellyfin
+  healthy, private Serve unchanged/Funnel off. Jellyfin/Tailscale/Radicale were not
+  restarted. Bridge/Radicale memory ~18/~19 MB.
+- Frame left on normal Home/light with auto theme preserved. **WebView debugging off,
+  USB forwarding removed, temporary Mac sleep assertion stopped, root session finished.**
+  Disposable auth-probe app from earlier investigation remains installed but stopped;
+  it is a separate UID/key and never enrolled. HomeHQ and default launcher preserved.
 
-The demo UI is built locally using `dashboard/vite.config.reminders.js` and served
-only under the HTTPS prefix `/__reminders-demo/`. No cloud assets were deployed and
-no private task data enters Cloudflare. All actual calendar events remain synthetic;
-private iCloud Calendar access is still inactive. Weather stays independently live.
+## Backup, security and rollback
 
-The adapter uses only `/pf1007l-demo/pf1007l-test/`. Frame IDs/revisions are opaque;
-completion uses fresh GET + UID/ETag verification + conditional PUT with a durable
-operation key. No task create/delete/arbitrary edit route exists on the frame.
-Due dates are normalized on Linux; no ICS parsing on Android. Date-only November 14
-was verified, with undated tasks only in Tasks and dated tasks in Tasks + Calendar.
-Tasks poll every 30 seconds on active Home/Tasks/Calendar views. No task localStorage;
-frame memory + private Linux last-good cache only. An outage disables writes and
-shows stale rows; no silent browser write queue.
+Private backup + consistent SQLite snapshot:
+`/var/backups/pf1007l-device-auth/backup-20261114T192145Z-7aef9bbe`.
+Frozen artifacts/diagnostics: matching `artifacts-20261114T192145Z-7aef9bbe`.
+Status/queue stage: `/home/hub/pf1007l-device-auth-review.yt5Otk`; latest phase finished.
+Controller SHA256:
+`e1e0c3be7013fecc080d0e682b31eaa842e7cec31c5d2c0b3433ebcae472bc30`.
 
-Cookie/CSRF/origin/backend-key and wrong-frame denial passed. Initial one-time
-session provisioning still trusts the allowed source IP; it is demo-only, not
-cryptographic hardware identity. Cookie lifetime is 24 hours; expiry can require
-local reprovisioning. The replacement is prepared/tested in source but not activated;
-physical acceptance remains a gate before personal reminders. Recurring task
-completion is blocked on frame pending real occurrence-semantics tests; complete recurring reminders on iPhone for now.
+The initial immediate HTTPS check raced startup (curl exit 7), including the rollback
+verification. Original files/UI/private configuration were restored and verified,
+then bounded readiness waits/stale-action protection were fixed and tested before
+retrying successfully. Original diagnostics and backup remain; no failed gate bypass.
 
-## Validation and remaining work
+**Never restore an old SQLite snapshot over current completion/operation history for
+normal rollback.** Retain current Radicale data. Restore only the current demo's
+backed-up code/settings/UI and prepared same-version APK if necessary, without
+uninstall/clear-data or unrelated changes. Do not use the old pre-demo rollback script.
+On suspected compromise revoke/fail closed; do not fall back to legacy/IP auth.
+Revocation needs bridge restart because registry is a LoadCredential startup snapshot.
+After real key theft use a clean new key/device, not epoch re-enablement of that key.
 
-- Autonomous source checkpoint: **180 tests passed** — 62 dashboard, 48 proxy/TLS,
-  5 demo-proxy routing tests, 52 Reminders Python fixtures (5 original bridge,
-  15 device proof, 6 HTTP auth boundary, 6 registry, 18 recovery, 2 discovery),
-  3 SSH configuration and 10 inactive iCloud tests. Final strict-registry changes
-  also passed the relevant 21-test Mint rerun. Native URL policy: **21 cases passed**.
-  Ordinary desk/demo builds and candidate APK signature verification passed.
-- Isolated Mint cold/renewal HTTP auth exchanges: **0.295 / 0.265 seconds**,
-  fixture-process peak RSS about 30 MiB; this is not a long-term load measurement.
-  Real bridge/Radicale remained ~17/~23 MiB with zero service restarts. Units active
-  and enabled, dashboard health zero upstream errors, Jellyfin healthy; private
-  Serve validated TLS and unauthenticated collection PROPFIND returned 401.
-- Physical separate-UID browser probe: native HttpOnly cookie accepted/present,
-  hidden from JavaScript; origin-aware message/reply round trip passed and channel
-  absent on a different origin. These used invented cookies and in-memory pages,
-  not the live authentication flow. Probe is stopped; working kiosk is foreground.
-- Fresh live-demo FPS samples: **57.3–60.2 FPS**, no sampled gap over 50 ms, six
-  five-second Home/Tasks/Calendar/theme samples. Original light theme/Home view
-  restored, automatic preference unchanged; debugging and USB forwarding off.
-  This measures the unchanged deployment, **not** candidate runtime performance.
-- Current checkpoint secret checks: Gitleaks 8.30.1 staged diff **and entire staged
-  index** (260 files), with allow-comments ignored: zero findings. Supplemental
-  private-key/header/JWT and sensitive-artifact checks also passed. Build outputs,
-  runtime settings, credentials, databases and physical diagnostics are excluded.
-- Mac free space remained ~13 GiB; Mint ~846 GiB. Retained Android dependencies
-  were used offline; no large downloads or server/OS restart occurred.
-- Original deployment checkpoint rerun: **118 tests passed** (50 dashboard, 48 proxy/TLS, 5 bridge,
-  2 redirect-origin, 3 SSH configuration and 10 inactive iCloud tests). Both demo
-  and ordinary desk production builds passed. Read-only runtime inspection confirmed
-  active services, startup enablement and private Serve; a full Linux reboot is
-  still untested. Physical evidence is ignored under
-  `diagnostics/pf1007l/reminders/` and `/private/tmp/pf1007l-*`.
-- At deployment checkpoint `3a74a35`, deployed adapter/proxy/final demo UI hashes
-  matched that source/build. The new candidate deliberately differs and is not
-  deployed. Its earlier staged-diff/full-index scans found no secrets;
-  supplemental private-key/JWT/header and sensitive-artifact checks also passed.
-  Reports stay ignored. Runtime passwords, bridge/session values, databases,
-  private keys, SSH client files and diagnostic payloads are not committed.
-- Original deployment-checkpoint frame Home/Tasks/Calendar: **59.95–60.15 FPS**, no sampled
-  gaps over 50 ms. Task-only simulated 503 retained data/disabled completion and
-  recovered. Live conflict returned 409 without overwriting an edit; adapter restart
-  preserved IDs and session. A UI poll race was removed after an overly short
-  five-second assertion; final server/UI/phone state was confirmed.
-- Still test Mac-off Wi-Fi/cellular, locked-app/background fetch delays, reconnects,
-  native timed reminders/DST, recurrence, multiple lists, long-running idempotent
-  recovery, retention/backup restore and session renewal. Do not call it ready for
-  personal everyday tasks or migrate iCloud lists based on this small demo.
-- Owner-approved private iCloud Calendar remains the separate **read-only** plan;
-  no Apple credentials collected and no account access activated. Continue from
-  [calendar proposal](pf1007l-private-icloud-plan.md) when specifically authorized.
-  Spotify Now Playing and Bambu A1 Mini remain later, separately authorized stages.
-  Todoist is superseded and must not be activated.
+Owner accepted this specific demo's software Keystore/root-ADB/unencrypted-storage
+risk; hardware-backed/non-extractable-under-root protection is not claimed. Keep
+fictional/non-sensitive tasks only. No production authorization follows from tests.
 
-## Preserved HTTPS/weather and recovery
+## Stable deployment context
 
-ZeroSSL dashboard certificate/renewal/monitoring remain in place; dashboard cert
-expires 2027-02-12 23:59:59 UTC. Tailscale's separate verified TLS 1.3 certificate
-expires 2027-02-12 13:30:19 UTC. Certificate timers remain scheduled. No router DNS,
-trusted-root changes, launchers, Jellyfin, media mounts or unrelated Cloudflare
-resources were changed. Existing Linux-only routing still avoids gateway DNS issues.
-
-A caught demo deployment error temporarily set the non-secret HTTPS config to 0600;
-its original 0644 mode was restored, and HTTPS health verified before proceeding.
-Credentials stayed private. Rollback source and saved original config/code are
-prepared; do not repeat that deployment mistake or loosen credential permissions.
-
-[Rollback instructions](pf1007l-reminders-integration.md) disable only the new bridge
-and restore original proxy code/config while retaining the current verified frame
-IP. Preserve Radicale data/credentials/Serve. To return just the kiosk URL to the
-original dashboard:
-
-```sh
-adb -d shell am start -n com.huntsyea.frame/.MainActivity -d https://beestr0.duckdns.org:8789/ --ez debug false
-```
-
-HTTP 8788 is still synthetic but retains the previous .247 client rule; do not
-promise it as a working fallback for today's .76 frame without reviewing that
-specific rule. Future DHCP changes fail closed; no reservation was added.
-
-HomeHQ remains available via `adb -d shell am start -n com.wesbos.homehq/.MainActivity`.
-Never clear app data, uninstall HomeHQ, change the default launcher, reset Serve,
-flush firewalls, delete reminders or revoke credentials as an automatic recovery.
-
-Other references: [HTTPS services](pf1007l-https-installation.md),
-[weather](pf1007l-weather.md), [cost limits](pf1007l-https-costs.md),
-[APK/permanent URL](pf1007l-permanent-https.md). Private backups/tooling remain ignored.
+- Mint `hub@10.157.1.115`, frame `10.157.1.76`. Persistent Ed25519 alias and strict
+  host verification retained; no expired temporary control sockets.
+- Saved demo URL `https://beestr0.duckdns.org:8789/__reminders-demo/`.
+  Original dashboard `https://beestr0.duckdns.org:8789/`, live weather independently.
+- Radicale 3.9.1 `pf1007l-reminders-demo.service`, loopback 5238; dedicated
+  `pf1007l-demo`, fixed `/pf1007l-demo/pf1007l-test/` adapter collection.
+- iPhone `https://hub-inspiron-5570.tailb76e1b.ts.net:443/`, private Serve → Radicale;
+  no Funnel/router opening. Existing account/credentials preserved.
+- Bridge `pf1007l-reminders-bridge.service`, loopback 5240, DynamicUser. Code/UI
+  `/opt/pf1007l-reminders-bridge`, config `/etc/pf1007l-reminders-bridge`, state
+  `/var/lib/pf1007l-reminders-bridge/tasks.sqlite`. Private settings/registry 0600,
+  directory 0700. Preserve backend/identity key values to retain opaque task IDs.
+- Non-secret HTTPS proxy config remains 0644 for DynamicUser; credentials stay
+  private. Existing TLS certificates, renewal/monitoring, frame-only firewall and
+  app-only CONNECT route retained. No global SSH/DNS/trust/router/launcher changes.
+- Native `com.huntsyea.frame`; HomeHQ `com.wesbos.homehq` installed/data intact.
+- No create/delete/arbitrary-edit frame task route, no ICS expansion on frame,
+  no browser task-data cache or offline write queue. Recurring completion blocked.
+- Private iCloud Calendar remains inactive/read-only preparation; calendar events
+  beside actual reminder markers remain synthetic. See
+  [calendar plan](pf1007l-private-icloud-plan.md); separate authentication/selection
+  approval needed. Todoist superseded. Spotify/Bambu remain later separate stages.
+- No personal task-list migration, default-list change, production sync, public
+  exposure, unrelated-service restart or computer reboot is authorized.
