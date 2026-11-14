@@ -38,8 +38,12 @@ Ignored physical evidence is under `diagnostics/pf1007l/reminders/`; it contains
 only demonstration data. No Apple credentials, raw personal calendars or iCloud
 Reminders were accessed. This working demonstration was checkpointed at `3a74a35`
 on the feature branch; no PR, merge or cloud deployment occurred. The later
-[device-auth candidate](pf1007l-device-auth.md) is prepared in source and isolated
-tests only; the running integration still uses this demonstration configuration.
+[persistent device authentication](pf1007l-device-auth-activation.md) is activated
+and physically verified, checkpointed at `3eed5dd`. The historical workflow below
+remains valid; current auth/rollback guidance is in that activation report.
+[Cellular testing](pf1007l-cellular-testing.md) passed the observed round-trip,
+reconnection and final reconciliation checks; exact background timing and multi-day
+reliability remain unverified.
 
 ## Current URLs, services and isolation
 
@@ -89,14 +93,12 @@ or arbitrary DAV URL API. Completion does a fresh GET, verifies UID/revision and
 issues PUT with If-Match. Persisted operation keys prevent replay; ambiguous errors
 surface instead of assuming success. Completed records remain in Radicale.
 
-The frame uses a revocable HttpOnly/Secure/SameSite=Strict cookie and per-request
-CSRF token; it never receives the DAV password or dashboard cloud key. The initial
-session was explicitly provisioned once to the current allowlisted physical frame.
-This IP-based bootstrap is suitable only for the disposable pilot, not strong
-hardware identity. Native navigation/bridge controls and stronger provisioning
-must be reviewed before personal data. The cookie currently has a 24-hour client
-lifetime; after it expires, local reprovisioning may be needed. No automatic
-credential reset is authorized.
+The frame now uses enrolled native signed proofs and automatically renewed
+900-second HttpOnly/Secure/SameSite sessions, with per-session CSRF. It receives
+neither DAV passwords nor cloud keys. Legacy 24-hour bootstrap is no longer active;
+revocation and renewal passed physical acceptance. The rooted/software-Keystore
+limitations remain accepted only for this disposable demo. See the
+[security review](pf1007l-auth-security-review.md).
 
 Task payloads stay in frame memory (no task localStorage) and root-protected Linux
 last-good state, with no-store responses. Offline completions are disabled, not
@@ -116,8 +118,8 @@ completed on the iPhone until occurrence semantics are validated.
    offline edits and later reconciliation. No such cellular test is yet claimed.
 3. Test timed native reminders, timezone changes/DST and multiple selected lists.
    The current pilot deliberately selects only PF1007L Test. Full recurrence
-   advancement, detached instances, subtasks, Apple-only features and persistent
-   client session renewal are not everyday-ready.
+   advancement, detached instances, subtasks, Apple-only features are not everyday-ready. Persistent
+   client renewal has passed its separate demo acceptance.
 4. Exercise timeout-after-success/retry across outages and long-duration soak. The
    backend has durable idempotency and revision checks, but broad long-term
    reliability is not established by this small demo.
@@ -128,7 +130,12 @@ Separate Siri test already passed with: **“Add Siri dashboard pilot to my PF10
 Test list.”** Verify the actual list destination; keep the default list unchanged.
 The new Siri reminder was left incomplete for further demonstration.
 
-## Reversible rollback — prepared, not executed
+## Historical pre-demo rollback — do not use for device-auth recovery
+
+For the current deployment use the [activation rollback runbook](pf1007l-auth-security-review.md).
+It preserves the working demonstration and current SQLite operation history. The
+older procedure below disables the entire demo and is retained only as historical
+context; it is not the current recovery procedure.
 
 `deploy/reminders/rollback_bridge.py`, run privately as root after choosing rollback,
 stops only the new bridge and restores the saved original proxy implementation and

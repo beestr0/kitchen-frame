@@ -7,6 +7,39 @@ verified activation tooling, recovery tests and documentation. Use `git log -1`
 and the branch upstream to identify its final commit; no deployment is required
 to restore this source checkpoint. No production/personal migration is authorized.
 
+## Cellular/Tailscale milestone closed — November 14
+
+Read [the timestamped report](pf1007l-cellular-testing.md). Owner-confirmed home
+Wi-Fi baseline, cellular creation/return completion, Siri phone/frame visibility,
+offline creation/reconnect recovery, completion visible at unlock and Wi-Fi-return
+reconciliation passed. All five synthetic reminders appear once with expected
+states; Tailscale connected, no account warnings. Observed return delays: 100 s
+foreground, approx. 55 s at unlock; reconnection recovered by approx. 48 s. Two
+current automatic renewals observed; all services healthy, no restart/redeployment.
+
+**Exact background fetch and long-term cellular reliability are not fully verified.**
+Siri transcription variant lacks direct server UID/timing because of the exact-title
+observer filter. No Calendar-view recheck, Mac-off run or new FPS measurement was
+performed. Next feature: automated recurrence compatibility fixtures and safe implementation.
+Longer background timing/soak are separate nonblocking work, not another interactive gate.
+Read-only observer remains bounded to one hour from about 21:37 UTC; it may exit
+naturally or owner can Ctrl+C its native Terminal. Do not assume it is still alive.
+Its private JSONL remains on Mint; no credential/runtime evidence belongs in Git.
+Observer source/tests and result docs are included in the cellular checkpoint. Deployment controller
+stays finished; no service or personal-account configuration changed.
+
+## Streamlined workflow — owner instruction
+
+Prefer focused automated unit/integration/disposable CalDAV tests. Reuse passing
+regressions; retest only behavior affected by changes. Use controlled fixture clocks
+for session expiry; do not wait through real 15-minute lifetimes again. Run long
+soaks separately from feature work. Complete implementation and automated checks
+before presenting one short consolidated hardware test list; collect results
+in a batch. Hardware checks are only for genuinely new hardware-dependent behavior.
+Time-box noncritical diagnosis, document limitations and continue independent work.
+Do not bypass critical failed gates. Preserve security, current deployment, default
+lists and personal iCloud data. No production or personal migration is authorized.
+
 ## Exact resume procedure
 
 1. `git status --short --branch` and `git log -1 --oneline`. Preserve local work and
@@ -23,10 +56,10 @@ to restore this source checkpoint. No production/personal migration is authorize
    curl --fail --silent --max-time 8 --resolve beestr0.duckdns.org:8789:10.157.1.115 https://beestr0.duckdns.org:8789/__proxy_health
    ```
 
-4. **Next implementation priority: controlled cellular/Tailscale reconnection and
-   background-fetch acceptance**, using disposable tasks only. Then actual recurring
-   reminder semantics, multi-day reliability/restore and a separately approved full
-   Linux reboot. Do not start another provider or migrate personal lists.
+4. **Next implementation priority: recurring-reminder compatibility using disposable
+   fixtures**, then unfinished integrations, especially private iCloud Calendar.
+   Keep recurring completion blocked until proven correct. Do not repeat completed
+   physical cellular/auth tests. Personal-account access requires separate approval.
 5. The scoped native root session was deliberately **finished**. No password is
    needed for ordinary runtime authentication. Do not assume an old Terminal or
    temporary SSH socket still holds authorization. If a new approved privileged
