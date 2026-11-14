@@ -1,5 +1,7 @@
 node_modules/
 dist/
+dist-desk/
+dist-desk-pages/
 .DS_Store
 .wrangler/
 # Upstream repo, cloned for reference: git clone https://github.com/wesbos/photo-frame-dashboard reference/photo-frame-dashboard
@@ -12,3 +14,10 @@ kiosk/build/
 .prod.vars
 .frame.vars
 .ollama.vars
+
+# Python deployment helpers
+__pycache__/
+
+# Isolated LAN TLS kiosk build and downloaded Maven artifacts
+kiosk/build-lan-tls/
+kiosk/deps-lan-tls/

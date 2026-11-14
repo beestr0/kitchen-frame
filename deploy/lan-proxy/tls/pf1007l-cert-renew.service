@@ -1,0 +1,16 @@
+# Prepared only. Enable after real issuance, activation and physical acceptance.
+[Unit]
+Description=Renew only PF1007L ZeroSSL certificate
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/pf1007l-tls/run_acme.py renew
+UMask=0077
+TimeoutStartSec=20min
+Nice=15
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/etc/pf1007l-tls /var/lib/pf1007l-acme

@@ -1,0 +1,11 @@
+[Unit]
+Description=Check PF1007L TLS health every five minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+RandomizedDelaySec=20s
+Unit=pf1007l-tls-monitor.service
+
+[Install]
+WantedBy=timers.target

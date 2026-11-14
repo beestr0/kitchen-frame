@@ -1,0 +1,36 @@
+# TEMPLATE ONLY: inspect the Linux server and obtain installation approval first.
+[Unit]
+Description=PF1007L restricted LAN dashboard proxy
+Wants=network-online.target
+Requires=pf1007l-proxy-firewall.service
+After=network-online.target pf1007l-proxy-firewall.service
+StartLimitIntervalSec=300
+StartLimitBurst=20
+
+[Service]
+Type=simple
+DynamicUser=yes
+WorkingDirectory=/opt/pf1007l-proxy
+ExecStart=/opt/pf1007l-proxy/node/bin/node /opt/pf1007l-proxy/pf1007l-lan-proxy.mjs /etc/pf1007l-proxy/config.json
+LoadCredential=dashboard-key:/etc/pf1007l-proxy/dashboard-key
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+UMask=0077
+Nice=10
+MemoryHigh=64M
+MemoryMax=128M
+CPUQuota=10%
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+# REVIEW TEMPLATE ONLY. Not installed or applied.
+# Verify the frame's address is reserved and this table name is unused first.
+# A dedicated table avoids modifying Tailscale's iptables-nft managed tables.
+table inet pf1007l_proxy_tls {
+  chain input {
+    type filter hook input priority -10; policy accept;
+    iifname "enx00e04c6138c0" ip saddr 10.157.1.247 ip daddr 10.157.1.115 tcp dport {8789, 8790} counter accept
+    iifname "lo" ip daddr 10.157.1.115 tcp dport {8789, 8790} counter accept
+    tcp dport {8789, 8790} counter drop
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // Separate PF1007L backend. Never reuse resources from the original dashboard.
+  "name": "pf1007l-desk-dashboard",
+  "account_id": "080cd6a50e86da58b871cbd770fdde8d",
+  "main": "./worker/desk.js",
+  "compatibility_date": "2026-10-01",
+  // Reachable only through the Pages DESK_API service binding.
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": { "binding": "ASSETS", "run_worker_first": ["/", "/index.html"] },
+  "kv_namespaces": [{ "binding": "CALENDAR", "id": "97c251442031407eb7bac4b330fbe07b" }],
+  "durable_objects": { "bindings": [{ "name": "MESSAGES", "class_name": "MessageRoom" }] },
+  "migrations": [{ "tag": "desk-v1", "new_sqlite_classes": ["MessageRoom"] }],
+  // Weather-only background refresh; calendar and other providers remain unconfigured.
+  "triggers": { "crons": ["*/15 * * * *"] },
+  "vars": { "DISPLAY_TZ": "America/Indiana/Indianapolis", "WEATHER_ENABLED": "true", "WEATHER_LAT": "39.7684", "WEATHER_LON": "-86.1581", "WEATHER_TZ": "America/Indiana/Indianapolis", "WEATHER_UNIT": "fahrenheit", "WEATHER_LOCATION": "Indianapolis" },
+  // Request URLs can contain WebSocket keys; don't enable request logging by default.
+  "observability": { "enabled": false }
+}

@@ -1,0 +1,15 @@
+# REVIEW TEMPLATE ONLY. Creating/stopping this unit changes only the new firewall table.
+[Unit]
+Description=PF1007L proxy port-specific firewall guard
+Wants=network-online.target
+After=network-online.target
+Before=pf1007l-proxy.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/pf1007l-proxy/firewall.nft
+ExecStop=/usr/sbin/nft delete table inet pf1007l_proxy
+
+[Install]
+WantedBy=multi-user.target

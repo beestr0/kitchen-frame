@@ -1,0 +1,40 @@
+# Prepared only; not installed. Set hostname, credentials and certificate first.
+[Unit]
+Description=PF1007L restricted LAN HTTPS dashboard proxy
+Wants=network-online.target
+Requires=pf1007l-proxy-https-firewall.service
+After=network-online.target pf1007l-proxy-https-firewall.service
+StartLimitIntervalSec=300
+StartLimitBurst=20
+
+[Service]
+Type=simple
+DynamicUser=yes
+RuntimeDirectory=pf1007l-proxy-https
+RuntimeDirectoryMode=0700
+WorkingDirectory=/opt/pf1007l-tls
+ExecStart=/opt/pf1007l-proxy/node/bin/node /opt/pf1007l-tls/proxy.mjs /etc/pf1007l-proxy-https/config.json
+LoadCredential=dashboard-key:/etc/pf1007l-proxy/dashboard-key
+LoadCredential=tls-key:/etc/pf1007l-tls/certificates/current/tls-key
+LoadCredential=tls-chain:/etc/pf1007l-tls/certificates/current/tls-chain
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+UMask=0077
+Nice=10
+MemoryHigh=64M
+MemoryMax=128M
+CPUQuota=10%
+
+[Install]
+WantedBy=multi-user.target

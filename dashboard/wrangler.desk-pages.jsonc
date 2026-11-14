@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // Separate Pages front door, authorized for the PF1007L test deployment.
+  "name": "pf1007l-desk-dashboard",
+  // Pages selects the authorized account via CLOUDFLARE_ACCOUNT_ID at deploy time.
+  "pages_build_output_dir": "./dist-desk-pages",
+  "compatibility_date": "2026-10-01",
+  "services": [{ "binding": "DESK_API", "service": "pf1007l-desk-dashboard" }],
+  // Preview API access stays unavailable unless separately configured.
+  "env": { "preview": { "services": [] } }
+}

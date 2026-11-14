@@ -54,9 +54,10 @@
             </div>
           {/each}
         </div>
+        <div class="weather-status">{wx.location || 'Weather'} · °{wx.unit} · <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a>{#if weather.error || wx.stale || clock.now.getTime() - Date.parse(wx.updated) > 30 * 60 * 1000}<span role="status"> · Outdated · Updated {new Date(wx.updated).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</span>{/if}</div>
       </div>
     {:else if weather.error}
-      <p class="note">Weather isn’t set up yet.</p>
+      <p class="note">Weather is temporarily unavailable.</p>
     {/if}
   </section>
 
@@ -123,6 +124,8 @@
   .clock { font-size: 156px; font-weight: 600; line-height: 1; letter-spacing: -.04em; margin: 2px 0 0 -4px; }
 
   .np-slot { margin-top: 18px; }
+  .weather-status { margin-top: 10px; font-size: 13px; color: var(--secondary); }
+  .weather-status a { color: inherit; }
   .weather { margin-top: auto; padding: 22px 24px 18px; }
   .wx-now { display: flex; align-items: center; gap: 18px; }
   .temp { font-size: 76px; font-weight: 300; line-height: 1; letter-spacing: -.03em; }

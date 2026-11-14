@@ -1,0 +1,16 @@
+{
+  "bindAddress": "10.157.1.115",
+  "port": 8789,
+  "allowedClients": [
+    "10.157.1.247"
+  ],
+  "healthClients": [
+    "10.157.1.115"
+  ],
+  "allowApiWrites": false,
+  "demoOnly": true,
+  "tls": {
+    "hostname": "REPLACE_WITH_REGISTERED_HOSTNAME",
+    "connectProxyPort": 8790
+  }
+}

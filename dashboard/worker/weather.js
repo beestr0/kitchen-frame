@@ -9,13 +9,23 @@ export async function getWeather(env) {
     current: 'temperature_2m,apparent_temperature,weather_code,is_day',
     daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,sunrise,sunset',
     temperature_unit: unit,
-    timezone: 'auto',
+    timezone: env.WEATHER_TZ || 'auto',
     forecast_days: '5',
   });
-  // Cache upstream for 10 minutes so every frame poll doesn't hit Open-Meteo.
-  const res = await fetch(url, { cf: { cacheTtl: 600, cacheEverything: true } });
+  // Backend-only provider fetch; the desk wrapper also persists last-good data in KV.
+  const res = await fetch(url, { signal: AbortSignal.timeout(8000), cf: { cacheTtl: 900, cacheEverything: true } });
   if (!res.ok) throw new Error('Open-Meteo HTTP ' + res.status);
-  return shape(await res.json(), unit);
+  const raw = await res.json();
+  const data = shape(raw, unit);
+  if (data.days.length !== 5 || !Number.isFinite(data.temp) || !Number.isFinite(data.feels) ||
+      !Number.isFinite(data.code) || raw.current.temperature_2m == null ||
+      raw.current.apparent_temperature == null || raw.current.weather_code == null ||
+      !data.days.every((d, i) => /^\d{4}-\d{2}-\d{2}$/.test(d.date) &&
+        raw.daily.temperature_2m_max[i] != null && raw.daily.temperature_2m_min[i] != null &&
+        raw.daily.weather_code[i] != null && Number.isFinite(d.hi) && Number.isFinite(d.lo) && Number.isFinite(d.code))) {
+    throw new Error('Invalid weather response');
+  }
+  return { ...data, timezone: raw.timezone, location: env.WEATHER_LOCATION || '', provider: 'Open-Meteo' };
 }
 
 export function shape(w, unit) {

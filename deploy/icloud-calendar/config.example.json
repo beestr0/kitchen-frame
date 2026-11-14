@@ -1,0 +1,13 @@
+{
+  "enabled": false,
+  "readOnly": true,
+  "timezone": "America/Indiana/Indianapolis",
+  "syncMinutes": 10,
+  "windowPastDays": 31,
+  "windowFutureDays": 180,
+  "selectedCalendars": [],
+  "exportDescription": false,
+  "exportLocation": false,
+  "exportAttendees": false,
+  "allowCloudUpload": false
+}

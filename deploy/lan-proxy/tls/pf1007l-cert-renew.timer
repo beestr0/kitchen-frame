@@ -1,0 +1,12 @@
+# Prepared only. Does not replace any global Certbot/ACME timer.
+[Unit]
+Description=Check PF1007L certificate twice daily
+
+[Timer]
+OnCalendar=*-*-* 03,15:00:00
+RandomizedDelaySec=30min
+Persistent=true
+Unit=pf1007l-cert-renew.service
+
+[Install]
+WantedBy=timers.target

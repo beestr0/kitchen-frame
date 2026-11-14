@@ -5,6 +5,9 @@
 #   brew install openjdk@17 && brew install --cask android-commandlinetools
 #   sdkmanager --sdk_root="$ANDROID_HOME" "build-tools;34.0.0" "platforms;android-34"
 # Then:  ./build.sh && adb install -r build/frame.apk
+# For physical testing without registering another Home app:
+#   KIOSK_LAUNCHER_ONLY=1 ./build.sh
+# This produces build/frame-test.apk with the same package and signing key.
 set -euo pipefail
 
 VERSION_NAME=1.3
@@ -28,8 +31,16 @@ out=build
 rm -rf "$out"
 mkdir -p "$out/classes"
 
+manifest=AndroidManifest.xml
+apk="$out/frame.apk"
+if [[ "${KIOSK_LAUNCHER_ONLY:-0}" == 1 ]]; then
+  manifest="$out/AndroidManifest.xml"
+  sed '/<category android:name="android.intent.category.HOME"/d' AndroidManifest.xml > "$manifest"
+  apk="$out/frame-test.apk"
+fi
+
 # 1. Resources and manifest -> an unsigned APK skeleton.
-"$tools/aapt2" link --manifest AndroidManifest.xml -I "$platform" -o "$out/unsigned.apk" \
+"$tools/aapt2" link --manifest "$manifest" -I "$platform" -o "$out/unsigned.apk" \
   --min-sdk-version "$MIN_SDK" --target-sdk-version "$TARGET_SDK" \
   --version-code "$VERSION_CODE" --version-name "$VERSION_NAME"
 
@@ -49,6 +60,6 @@ if [ ! -f "$keystore" ]; then
     -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" >/dev/null 2>&1
 fi
 "$tools/apksigner" sign --ks "$keystore" --ks-pass pass:android --key-pass pass:android \
-  --out "$out/frame.apk" "$out/aligned.apk"
+  --out "$apk" "$out/aligned.apk"
 
-echo "Built kiosk/build/frame.apk ($VERSION_NAME)"
+echo "Built kiosk/$apk ($VERSION_NAME)"

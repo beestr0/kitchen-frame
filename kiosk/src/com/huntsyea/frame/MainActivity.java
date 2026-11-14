@@ -53,6 +53,7 @@ public class MainActivity extends Activity {
   private final float[] downY = new float[2];
   private boolean escapeArmed;
   private boolean loadedOnce;
+  private boolean mainFrameFailed;
 
   // The frame often starts before Wi-Fi is up: keep retrying the dashboard until it loads.
   private final Runnable retry = new Runnable() {
@@ -104,9 +105,14 @@ public class MainActivity extends Activity {
       }
 
       @Override
+      public void onPageStarted(WebView view, String started, android.graphics.Bitmap favicon) {
+        mainFrameFailed = false;
+      }
+
+      @Override
       public void onPageFinished(WebView view, String finished) {
-        // The built-in error page also "finishes"; only count a real page with a title.
-        if (view.getTitle() != null && !view.getTitle().isEmpty() && !view.getTitle().startsWith("Webpage")) {
+        // Error-page completion can retain the previous title. Never cancel its retry.
+        if (!mainFrameFailed && view.getTitle() != null && !view.getTitle().isEmpty() && !view.getTitle().startsWith("Webpage")) {
           loadedOnce = true;
           handler.removeCallbacks(retry);
           Log.i(TAG, "loaded " + view.getTitle());
@@ -116,6 +122,8 @@ public class MainActivity extends Activity {
       @Override
       public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
         if (request.isForMainFrame()) {
+          mainFrameFailed = true;
+          loadedOnce = false;
           Log.w(TAG, "load error " + error.getErrorCode() + " " + error.getDescription());
           scheduleRetry();
         }
@@ -126,6 +134,8 @@ public class MainActivity extends Activity {
         // Never bypass certificate checks; just try again (the clock is probably still syncing).
         Log.w(TAG, "ssl error " + error.getPrimaryError() + " (device time " + new java.util.Date() + ")");
         sslHandler.cancel();
+        mainFrameFailed = true;
+        loadedOnce = false;
         scheduleRetry();
       }
     });

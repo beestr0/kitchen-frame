@@ -1,0 +1,15 @@
+[Unit]
+Description=PF1007L local TLS expiry renewal DNS and health checks
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/pf1007l-tls/monitor.py
+UMask=0077
+TimeoutStartSec=45
+Nice=15
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/etc/pf1007l-tls

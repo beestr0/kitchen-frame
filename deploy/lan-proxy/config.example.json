@@ -1,0 +1,8 @@
+{
+  "bindAddress": "SERVER_LAN_IP",
+  "port": 8788,
+  "allowedClients": ["FRAME_RESERVED_LAN_IP"],
+  "healthClients": ["SERVER_LAN_IP"],
+  "allowApiWrites": false,
+  "demoOnly": true
+}

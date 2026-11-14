@@ -1,0 +1,5 @@
+{
+  "enabled": false,
+  "transport": "not-configured",
+  "note": "Local journal and root-private last-alert.json work without an account. External delivery requires an approved provider, destination and a securely entered credential. Do not put real secrets in this template."
+}
