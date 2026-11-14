@@ -1,14 +1,17 @@
 <script>
   import Icon from '../components/Icon.svelte';
-  import { clock, calendar, calendarEvents, loadCalendar, remindersPilot, reminders, completeItem } from '../lib/state.svelte.js';
+  import { clock, calendar, calendarEvents, loadCalendar, remindersPilot, reminders, completeItem, privateCalendar, calendarCovers } from '../lib/state.svelte.js';
   import { calVars, eventsOn, addDays, time, isPast } from '../lib/format.js';
   import Month from './Month.svelte';
+  import Day from './Day.svelte';
+  import CalendarStatus from '../components/CalendarStatus.svelte';
 
   const WEEKS = 5;   // week view pages through five weeks
   const MONTHS = 2;  // month view: this month and next (the Worker fetches ~10 weeks ahead)
   // Week or month, remembered on the frame.
-  let view = $state(localStorage.getItem('frame-cal-view') === 'month' ? 'month' : 'week');
+  let view = $state(['month','day'].includes(localStorage.getItem('frame-cal-view')) ? localStorage.getItem('frame-cal-view') : 'week');
   function setView(v) { view = v; localStorage.setItem('frame-cal-view', v); }
+  let dayOffset = $state(0);
   let month = $state(0); // 0 = this month, 1 = next
   let week = $state(0); // 0 = the next 7 days, 1 = the 7 after that, …
   let open = $state(null); // tapped event shows its full title, time range and location
@@ -17,28 +20,29 @@
     return { day, i, today: week === 0 && i === 0, events: eventsOn(calendarEvents(), day) };
   }));
   const short = (d) => d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-  let label = $derived(view === 'month'
+  let label = $derived(view === 'day' ? addDays(clock.now,dayOffset).toLocaleDateString([], {month:'short',day:'numeric'}) : view === 'month'
     ? new Date(clock.now.getFullYear(), clock.now.getMonth() + month, 1).toLocaleDateString([], { month: 'long', year: 'numeric' })
     : week === 0 ? 'This week' : week === 1 ? 'Next week' : short(days[0].day) + ' – ' + short(days[6].day));
   // The arrows page whichever view is showing.
-  let page = $derived(view === 'month' ? month : week);
-  let pages = $derived(view === 'month' ? MONTHS : WEEKS);
-  function go(n) { if (view === 'month') month = n; else week = n; }
+  let page = $derived(view === 'month' ? month : view === 'day' ? dayOffset : week);
+  let pages = $derived(view === 'month' ? (privateCalendar.enabled ? 6 : MONTHS) : view === 'day' ? 180 : WEEKS);
+  function go(n) { if (view === 'month') month = n; else if (view === 'day') dayOffset = n; else week = n; }
   let nextCount = $derived.by(() => {
     // Events further out, so an empty week still hints that more is coming. Holidays don't count.
     if (view === 'month' || !calendar.data || week >= WEEKS - 1) return 0;
     const from = addDays(clock.now, (week + 1) * 7).getTime();
-    return calendar.data.events.filter((e) => !e.holiday && Date.parse(e.start) >= from).length;
+    return calendarEvents().filter((e) => !e.holiday && Date.parse(e.start) >= from).length;
   });
   const key = (e) => e.uid + e.start;
 </script>
 
 <div class="wrap">
   <header class="bar">
-      <h2>{label}{#if remindersPilot}<small> · PF1007L Test demo{reminders.stale ? ' · Outdated' : ''}</small>{/if}</h2>
+      <h2>{label}{#if remindersPilot && !privateCalendar.enabled}<small> · PF1007L Test demo{reminders.stale ? ' · Outdated' : ''}</small>{/if}</h2>
     <div class="pager">
       {#if page > 0}<button class="today-btn" onclick={() => go(0)}>Today</button>{/if}
       <div class="seg" role="tablist" aria-label="Calendar view">
+        <button role="tab" aria-selected={view === 'day'} class:on={view === 'day'} onclick={() => setView('day')}>Day</button>
         <button role="tab" aria-selected={view === 'week'} class:on={view === 'week'} onclick={() => setView('week')}>Week</button>
         <button role="tab" aria-selected={view === 'month'} class:on={view === 'month'} onclick={() => setView('month')}>Month</button>
       </div>
@@ -46,11 +50,14 @@
       <button class="nav" disabled={page >= pages - 1} onclick={() => go(page + 1)} aria-label={'Next ' + view}><Icon name="chevronRight" size={26} />{#if nextCount}<span class="badge num">{nextCount}</span>{/if}</button>
     </div>
   </header>
-  {#if view === 'month'}
+  <CalendarStatus />
+  {#if view === 'day'}
+    <Day offset={dayOffset} />
+  {:else if view === 'month'}
     <Month offset={month} />
   {:else}
   <div class="sheet week">
-    {#if !calendar.data && calendar.offline}
+    {#if !!privateCalendar.enabled && calendar.data && calendar.offline}
       <div class="fail">
         <p>Couldn’t load the calendar.</p>
         <button onclick={loadCalendar}>Try again</button>
@@ -64,6 +71,7 @@
           </header>
           <!-- Busy days scroll inside their column; nothing is hidden behind a count. -->
           <div class="events">
+            {#if !calendarCovers(d.day)}<span class="t">No cached calendar data</span>{/if}
             {#each d.events as e (key(e))}
               {#if e.kind === 'reminder'}
                 <button class="ev" style={calVars(e)} disabled={!e.task.canComplete || reminders.stale} onclick={() => completeItem('todo', e.task)} aria-label={'Complete ' + e.title}>
@@ -84,7 +92,7 @@
     {/if}
   </div>
   {/if}
-  {#if calendar.data && calendar.offline}<p class="stale">Offline · showing the calendar from {time(new Date(calendar.data.updated))}</p>{/if}
+  {#if !privateCalendar.enabled && calendar.data && calendar.offline}<p class="stale">Offline · showing the calendar from {time(new Date(calendar.data.updated))}</p>{/if}
 </div>
 
 <style>

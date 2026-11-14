@@ -162,7 +162,10 @@ class ReadonlyCalDAV:
         stamp = lambda t: t.astimezone(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
         ET.SubElement(event, C + 'time-range', {'start':stamp(start),'end':stamp(end)})
         effective, response = self._request('REPORT', collection, ET.tostring(root, encoding='utf-8'), '1')
-        rows = []
+        rows = []; seen = set()
+        for item in response.findall(D + 'response'):
+            if item.find(D + 'status') is not None:
+                raise CalendarError('Incomplete calendar response')
         for href, props in self._successful_props(response):
             data = next((p.text for p in props if p.tag == C + 'calendar-data'), None)
             if data is None: raise CalendarError('Incomplete calendar response')
@@ -171,5 +174,9 @@ class ReadonlyCalDAV:
             prefix = urllib.parse.urlsplit(effective).path.rstrip('/') + '/'
             if urllib.parse.urlsplit(endpoint).netloc != urllib.parse.urlsplit(effective).netloc or not urllib.parse.urlsplit(endpoint).path.startswith(prefix):
                 raise CalendarError('Unexpected calendar object')
-            rows.append({'ical': data, 'etag': next((p.text for p in props if p.tag == D + 'getetag'), None)})
+            etag = next((p.text for p in props if p.tag == D + 'getetag'), None)
+            if not etag or endpoint in seen or len(rows) >= 1000:
+                raise CalendarError('Incomplete calendar response')
+            seen.add(endpoint)
+            rows.append({'ical': data, 'etag': etag})
         return rows

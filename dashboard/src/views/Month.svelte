@@ -1,6 +1,6 @@
 <script>
   import EventRow from '../components/EventRow.svelte';
-  import { clock, calendarEvents } from '../lib/state.svelte.js';
+  import { clock, calendarEvents, calendarCovers } from '../lib/state.svelte.js';
   import { calVars, eventsOn, addDays, dayKey } from '../lib/format.js';
 
   // A month of dots (iPhone Calendar style) beside the chosen day's events. offset: months from now.
@@ -49,11 +49,12 @@
   <section class="sheet list">
     {#if selected}
       <h2>{selected.day.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</h2>
+      {#if !calendarCovers(selected.day)}<p class="none">No cached calendar data for this date.</p>{/if}
       <div class="events">
         {#each selected.events as e (e.uid + e.start)}
           <EventRow event={e} now={clock.now} />
         {:else}
-          <p class="none">No events</p>
+          {#if calendarCovers(selected.day)}<p class="none">No events</p>{/if}
         {/each}
       </div>
     {/if}

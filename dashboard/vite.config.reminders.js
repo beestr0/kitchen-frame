@@ -3,6 +3,6 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 // Linux-local, demo-only build. No cloud deployment or provider credentials.
 export default defineConfig({
   plugins: [svelte()], base: '/__reminders-demo/',
-  define: { 'import.meta.env.VITE_REMINDERS_PILOT': 'true' },
+  define: { 'import.meta.env.VITE_REMINDERS_PILOT': 'true', 'import.meta.env.VITE_PRIVATE_CALENDAR': 'true' },
   build: { outDir: 'dist-reminders-demo', target: 'chrome106', cssTarget: 'chrome61' },
 });

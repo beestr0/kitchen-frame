@@ -37,3 +37,9 @@ kiosk/build-auth-probe/
 kiosk/build-auth-tests/
 kiosk/build-auth-candidate/
 kiosk/build-auth-rollback/
+
+# Private calendar runtime/configuration are Linux-only, never source artifacts.
+/deploy/icloud-calendar/apple.json
+/deploy/icloud-calendar/config.json
+/deploy/icloud-calendar/bridge-key
+/deploy/icloud-calendar/*.sqlite*

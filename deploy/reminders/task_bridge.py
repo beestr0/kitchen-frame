@@ -4,6 +4,7 @@ import base64
 from datetime import date, datetime, timezone
 import hashlib
 import hmac
+import http.client
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
@@ -100,6 +101,7 @@ class Bridge:
     def __init__(self, account, settings, database, device_registry=None, clock=time.monotonic, jitter=random.uniform):
         if account.get('username') != 'pf1007l-demo':
             raise RuntimeError('Dedicated demo account required')
+        self.calendar_key = None
         self.account, self.settings = account, settings
         if str(database) != ':memory:' and Path(database).is_symlink():
             raise RuntimeError('Task state must not be a symlink')
@@ -229,6 +231,25 @@ class Bridge:
             self.save('snapshot', stale)
             return stale
 
+    def calendar_snapshot(self):
+        if self.calendar_key is None:
+            return {'source': 'disabled'}
+        connection = http.client.HTTPConnection('127.0.0.1', 5241, timeout=3)
+        try:
+            connection.request('GET', '/snapshot', headers={'X-Calendar-Key': self.calendar_key})
+            response = connection.getresponse(); data = response.read(2097153)
+            if response.status != 200 or len(data) > 2097152:
+                raise ValueError()
+            value = json.loads(data)
+            if value.get('source') != 'private-caldav' or not isinstance(value.get('events'), list):
+                raise ValueError()
+            return {**value, 'available': True}
+        except Exception:
+            return {'source': 'private-caldav', 'available': False, 'stale': True,
+                    'error': 'Calendar temporarily unavailable', 'events': []}
+        finally:
+            connection.close()
+
     def complete(self, identifier, version, key):
         if not re.fullmatch(r'[a-f0-9]{64}', identifier) or not re.fullmatch(r'[A-Za-z0-9-]{16,80}', key):
             raise TaskError(400, 'Invalid completion request')
@@ -332,6 +353,10 @@ def handler(bridge):
                 self.response(200, {'demo': True, 'mode': 'legacy-demo', 'expiresIn': 86400, 'csrf': bridge.settings['csrf']}, cookie=True); return
             if not authenticated and session is None:
                 raise TaskError(401, 'Demo frame session required')
+            if route == PREFIX + 'calendar' and self.command == 'GET':
+                if bridge.device_auth is None:
+                    raise TaskError(403, 'Persistent device authentication required')
+                self.response(200, bridge.calendar_snapshot()); return
             if route == PREFIX + 'snapshot' and self.command == 'GET':
                 self.response(200, bridge.snapshot()); return
             if route == PREFIX + 'complete' and self.command == 'POST':
@@ -370,4 +395,8 @@ if __name__ == '__main__':
     state = Path(os.environ['STATE_DIRECTORY'])
     registry = json.loads((credentials / 'device-registry').read_text()) if settings.get('authMode') == 'device-v1' else None
     bridge = Bridge(account, settings, state / 'tasks.sqlite', device_registry=registry)
+    if os.environ.get('PF1007L_PRIVATE_CALENDAR') == '1':
+        bridge.calendar_key = (credentials / 'calendar-key').read_text().strip()
+        if len(bridge.calendar_key) < 40:
+            raise ValueError('Calendar service credential required')
     ThreadingHTTPServer(('127.0.0.1', 5240), handler(bridge)).serve_forever()

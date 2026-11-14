@@ -9,6 +9,7 @@ import { focus } from './focus.svelte.js';
 import { remaining } from './focus.js';
 import { projectReminders } from './reminders.js';
 import { createDeviceSession } from './device-session.js';
+import { reconcileCalendar, combineCalendar } from './private-calendar.js';
 export const remindersPilot = import.meta.env.VITE_REMINDERS_PILOT === true;
 
 const MIN = 60 * 1000;
@@ -56,10 +57,23 @@ export function setSetting(key, value) {
 export const clock = $state({ now: new Date() });
 // In demo mode nothing real is shown at boot, even briefly, and nothing demo is cached as real.
 export const calendar = $state({ data: ui.demo ? demoCalendar(new Date()) : cached('calendar'), offline: false });
+export const privateCalendar = $state({ enabled:import.meta.env.VITE_PRIVATE_CALENDAR === true, events:[], stale:true, error:null });
+export function calendarNotice() {
+  if (!privateCalendar.enabled) return null;
+  if (!privateCalendar.updated) return privateCalendar.error || 'Loading Apple Calendar…';
+  if (privateCalendar.stale) return 'Calendar outdated · updated ' + new Date(privateCalendar.updated).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+  return null;
+}
+export function calendarCovers(day) {
+  if (!privateCalendar.enabled) return true;
+  const window = privateCalendar.window;
+  if (!window) return false;
+  const key = day.getFullYear() + '-' + String(day.getMonth()+1).padStart(2,'0') + '-' + String(day.getDate()).padStart(2,'0');
+  return key >= window.from.slice(0,10) && key < window.to.slice(0,10);
+}
 export const reminders = $state({ events: [], stale: true, error: null, lastSuccess: null });
 export function calendarEvents() {
-  const events = calendar.data?.events || [];
-  return remindersPilot ? [...events, ...reminders.events].sort((a, b) => a.start.localeCompare(b.start)) : events;
+  return combineCalendar(privateCalendar, calendar.data?.events || [], remindersPilot ? reminders.events : []);
 }
 async function pilotRequest(route, init = {}) {
   const controller = new AbortController();
@@ -76,6 +90,21 @@ async function pilotRequest(route, init = {}) {
   } finally { clearTimeout(deadline); }
 }
 const pilotSession = createDeviceSession({ request: pilotRequest });
+export function loadPrivateCalendar() {
+  if (!remindersPilot) return Promise.resolve();
+  return single('private-calendar', async () => {
+    try {
+      const response = await pilotSession.request('calendar');
+      if (response.source === 'private-caldav') privateCalendar.enabled = true;
+      const next = reconcileCalendar(privateCalendar, response);
+      // Preserve event-array identity on unchanged polls so the date index is reused.
+      if (JSON.stringify(next.events) === JSON.stringify(privateCalendar.events)) next.events = privateCalendar.events;
+      Object.assign(privateCalendar, next);
+    } catch {
+      if (privateCalendar.enabled) { privateCalendar.stale=true; privateCalendar.error='Calendar temporarily unavailable'; }
+    }
+  });
+}
 export function loadReminders() {
   return single('demo-reminders', async () => {
     try {
@@ -138,6 +167,7 @@ export const lists = $state({
 });
 
 export function loadCalendar() {
+  if (remindersPilot) loadPrivateCalendar();
   if (ui.demo) { calendar.data = demoCalendar(new Date()); calendar.offline = false; return Promise.resolve(); }
   return single('calendar', async () => {
     try {
@@ -344,6 +374,7 @@ function applyTheme() {
 }
 
 export function start() {
+  if (remindersPilot) every(60000, loadPrivateCalendar, () => !ui.idle && ['home', 'calendar'].includes(ui.tab));
   if (remindersPilot) every(30000, loadReminders, () => !ui.idle && ['home', 'todo', 'calendar'].includes(ui.tab));
   if (remindersPilot) {
     addEventListener('online', loadReminders);

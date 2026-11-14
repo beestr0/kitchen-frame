@@ -98,3 +98,20 @@ test('backend outage gives a fixed error without disclosing transport details or
   assert.equal(res.status,503); assert.equal(body,'{"error":"Demo tasks temporarily unavailable"}');
   assert.ok(!body.includes(inventedKey)); assert.ok(!body.includes('sensitive'));
 }));
+
+
+test('calendar is a fixed authenticated backend GET route, never a write or DAV relay', () => fixture(async handle => {
+  const calls=[];
+  mock.method(http,'request',(options,callback)=>{
+    calls.push(options);const upstream=new PassThrough();upstream.resume();
+    setImmediate(()=>{const reply=Readable.from(['{"source":"private-caldav","events":[]}']);Object.assign(reply,{statusCode:200,headers:{}});callback(reply);});
+    return upstream;
+  });
+  const res=response();handle(request('GET',{cookie:'invented-session'},''),res,new URL(origin+prefix+'calendar'));
+  await res.done;assert.equal(res.status,200);assert.equal(calls[0].hostname,'127.0.0.1');assert.equal(calls[0].port,5240);
+  assert.equal(calls[0].path,prefix+'calendar');assert.equal(calls[0].headers.cookie,'invented-session');
+  for(const path of ['calendar','calendar?url=https://unrelated.example']) {
+    const denied=response();handle(request('POST'),denied,new URL(origin+prefix+path));await denied.done;assert.ok([400,405].includes(denied.status));
+  }
+  assert.equal(calls.length,1);
+}));

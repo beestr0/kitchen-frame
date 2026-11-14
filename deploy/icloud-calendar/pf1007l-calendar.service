@@ -1,0 +1,39 @@
+[Unit]
+Description=PF1007L private read-only Apple Calendar collector
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+DynamicUser=yes
+WorkingDirectory=/opt/pf1007l-calendar/deploy/icloud-calendar
+ExecStart=/usr/bin/python3 /opt/pf1007l-calendar/deploy/icloud-calendar/service.py
+LoadCredential=apple-account:/etc/pf1007l-calendar/apple.json
+LoadCredential=calendar-config:/etc/pf1007l-calendar/config.json
+LoadCredential=calendar-key:/etc/pf1007l-calendar/bridge-key
+StateDirectory=pf1007l-calendar
+StateDirectoryMode=0700
+UMask=0077
+LimitCORE=0
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+MemoryHigh=128M
+MemoryMax=256M
+CPUQuota=50%
+TasksMax=32
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target

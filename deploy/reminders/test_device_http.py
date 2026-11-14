@@ -95,6 +95,16 @@ class DeviceHTTPTests(unittest.TestCase):
         self.assertEqual(self.request('complete','POST',{}, {'Cookie':cookie,'X-Pilot-CSRF':old['csrf']})[0],403)
         self.assertEqual(self.writes,0)
 
+    def test_private_calendar_uses_same_device_auth_and_cannot_write(self):
+        self.assertEqual(self.request('calendar')[0],401)
+        cookie,_=self.login()
+        self.bridge.calendar_snapshot=lambda:{'source':'private-caldav','events':[], 'stale':False}
+        self.assertEqual(self.request('calendar',headers={'Cookie':cookie})[0],200)
+        self.assertEqual(self.request('calendar',headers={'Cookie':cookie,'Origin':'https://unrelated.example'})[0],403)
+        self.assertEqual(self.request('calendar?arbitrary=path',headers={'Cookie':cookie})[0],404)
+        self.assertEqual(self.request('calendar','POST',{}, {'Cookie':cookie})[0],404)
+        self.assertEqual(self.writes,0)
+
     def test_invalid_or_oversized_device_bodies_fail_closed(self):
         for value in [[], None, {'device':'x'*2100}]:
             self.assertIn(self.request('device/challenge','POST',value)[0],(400,413,415))

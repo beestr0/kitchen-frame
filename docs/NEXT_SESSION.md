@@ -7,19 +7,37 @@ verified activation tooling, recovery tests and documentation. Use `git log -1`
 and the branch upstream to identify its final commit; no deployment is required
 to restore this source checkpoint. No production/personal migration is authorized.
 
-## Primary priority — live Apple/iCloud Calendar
+## Primary priority — authorize and activate implemented private Apple Calendar
 
-Owner's latest instruction: **real Apple Calendar is the main goal and next feature**.
-Current operation is safely checkpointed; no deployment was active. Await the
-owner's detailed calendar requirements, then prioritize the existing private
-read-only Calendar plan above recurrence research, optional reliability work and
-other integrations. No Apple account access, credentials or calendar connection
-is authorized by preparation alone. Read [completion plan](pf1007l-completion-plan.md).
+Read [the implementation/account/deployment runbook](pf1007l-calendar-integration.md).
+The collector, selected-calendar cache, reused Linux event parser, authenticated
+calendar GET route and Home/Month/Week/new Day integration are implemented/tested.
+**No Apple account accessed and nothing deployed yet.** Current real event views
+still await account choice, private credential entry, metadata selection and live
+activation. Do not restart unrelated work or repeat passed cellular/auth tests.
 
-New recurring-reminder safeguards and disposable actual-Radicale tests passed;
-see [recurrence status](pf1007l-recurrence-status.md). These are source-only and
-**not deployed**; recurring completion remains blocked. Live core stays `8aade81`.
-Cellular closure was pushed as `64aa9bb`. Use `git log -1` for this follow-up commit.
+Verified: 72 dashboard tests, 20 Calendar tests, 6 proxy relay tests and 13 relevant
+Mint bridge tests; UI build and full assembled Linux collector→Node pipeline with
+invented events passed. No physical performance/live-Apple claim follows from this.
+Frozen candidate v3: `diagnostics/pf1007l/calendar-candidate-v3`; Mint review stage
+`/home/hub/pf1007l-calendar-candidate-v3-review`. Manifest SHA256
+`b392c9f1babe4028ac7dd3a6ecca60693bc79a64f801d8f8dfc1b699b830c1ef`.
+The v1 Node path failed isolated testing; preserve it for diagnosis, deploy only v3.
+
+Essential next owner decision: dedicated privately shared view-only reader account
+(preferred) versus existing-account app password with broader scope. Approve private
+credential storage, metadata discovery and selected-event display before connection.
+Then the prepared `python3 deploy/icloud-calendar/start_authorization.py` runs only
+in native Terminal: hidden inputs, selected calendar list locally, no event fetch or
+service starts. Do not ask for account names/passwords/calendar metadata in chat.
+Deploy only after approved selected scope, private backups and preflight; batch
+physical checks once using the runbook. No Reminders migration or production task
+activation is authorized. Existing frame software/physical-access risk applies to
+displayed personal events; it must be included in account/display authorization.
+
+Live core remains `8aade81`; recurrence and calendar changes are source-only.
+Cellular closure `64aa9bb`, recurrence preparation `ccaa37b`. Preserve current
+Reminders/device registry/settings/SQLite and original private backups.
 
 ## Cellular/Tailscale milestone closed — November 14
 
@@ -70,8 +88,8 @@ lists and personal iCloud data. No production or personal migration is authorize
    curl --fail --silent --max-time 8 --resolve beestr0.duckdns.org:8789:10.157.1.115 https://beestr0.duckdns.org:8789/__proxy_health
    ```
 
-4. **Next implementation priority: live private Apple/iCloud Calendar**, following
-   the owner’s forthcoming detailed requirements and existing read-only preparation.
+4. **Next priority: account-scope approval and live Apple Calendar activation**,
+   using the already implemented/tested candidate and consolidated runbook.
    Keep recurring completion blocked until proven correct. Do not repeat completed
    physical cellular/auth tests. Personal-account access requires separate approval.
 5. The scoped native root session was deliberately **finished**. No password is

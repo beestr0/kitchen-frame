@@ -16,6 +16,10 @@ export function addDays(d, n) {
 }
 // Calendar colour as CSS variables (the palette changes with the theme).
 export function calVars(e) {
+  if (/^#[a-fA-F0-9]{6}$/.test(e.color || '')) {
+    const rgb = [1, 3, 5].map(i => parseInt(e.color.slice(i, i + 2), 16));
+    return '--c:' + e.color + ';--c-tint:rgba(' + rgb.join(',') + ',0.14)';
+  }
   const n = e.cal % 4;
   return '--c:var(--cal' + n + ');--c-tint:var(--cal' + n + '-tint)';
 }
@@ -33,7 +37,12 @@ function indexDays(events) {
   const add = (k, e) => { if (!byDay.has(k)) byDay.set(k, []); byDay.get(k).push(e); };
   for (const e of events) {
     if (e.kind === 'reminder' && e.dueDay) { add(e.dueDay, e); continue; }
-    if (!e.allDay) { add(dayKey(new Date(e.start)), e); continue; }
+    if (!e.allDay) {
+      const start = new Date(e.start), end = Date.parse(e.end);
+      if (!Number.isFinite(start.getTime()) || !Number.isFinite(end)) continue;
+      for (let d = addDays(start, 0), n = 0; n < 400 && (d.getTime() < end || n === 0); d = addDays(d, 1), n++) add(dayKey(d), e);
+      continue;
+    }
     const [y, m, d] = e.start.split('-').map(Number);
     for (let i = 0, k = e.start; k < e.end && i < 400; k = dayKey(new Date(y, m - 1, d + ++i))) add(k, e);
   }

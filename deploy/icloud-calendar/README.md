@@ -1,36 +1,25 @@
-# Private iCloud calendar preparation — inactive
+# Private iCloud Calendar candidate — implemented, not activated
 
-No service is installed, no credential collector has been run and no Apple
-account request has been made. Running the tests uses invented data and mocked
-transport only. Importing the transport or constructing its client does no I/O.
-Do not run credential entry or call discovery against Apple until method approval.
+No Apple account has been accessed. Do not collect credentials, discover metadata
+or fetch events until the owner approves the account method and selected scope.
 
-Prepared pieces:
+- `readonly_caldav.py`: existing read-only HTTPS discovery and bounded VEVENT reads,
+  now rejecting failed/duplicate/incomplete multistatus resources before deletion.
+- `collector.py` / `service.py`: selected-calendar per-source last-good SQLite cache,
+  five-minute refresh, retry/auth latch and keyed loopback5241 snapshot service.
+- `normalize.mjs`: existing tested ical.js calendar parser reused on Linux, bounded
+  and minimally projected. Uses the already installed proxy Node runtime. No browser
+  parsing, Apple credential, network access or implicit setup in the normalizer.
+- `pf1007l-calendar.service` / `bridge-calendar.conf`: isolated DynamicUser collector
+  and optional credential-only task-bridge extension. Neither is installed/enabled.
+- `authorize.py` / `prepare_credentials.py`: private native root-TTY credential and
+  metadata selection helpers; never fetch events, write Apple data or start services.
+- `start_authorization.py`: checksum-pinned native SSH setup launcher, after approval.
+- `prepare_release.py`: non-overwriting credential-free candidate freeze; v3 is the
+  tested bundle. No deployment, service restart or Apple request on preparation.
 
-- `readonly_caldav.py`: bounded HTTPS PROPFIND discovery and VEVENT REPORT reads;
-  no write methods; narrow Apple CalDAV endpoint/redirect validation; normal
-  hostname and certificate checks; no inherited HTTP proxy; sanitized errors;
-  namespace-aware XML parsing with DTD/entity, UTF-16 and size rejection.
-- `prepare_credentials.py`: future hidden native Terminal entry on Linux root TTY,
-  opt-in `--approved-storage`; atomic non-overwriting root-private storage. It
-  validates expected app-password format but cannot prove credential scope or
-  authenticity. It never authenticates, discovers calendars or starts syncing.
-- `config.example.json`: disabled, no selected calendars, no cloud upload, minimal
-  event fields. Selection remains a separate step after approved metadata discovery.
-- `tests/`: entirely offline fixtures for TLS configuration, endpoint restrictions,
-  read-only requests, discovery, bounded event queries, redacted failures and
-  private non-overwriting credential storage.
+Validation: `python3 -m unittest discover -s deploy/icloud-calendar/tests` (20 tests),
+`npm test` in dashboard (72 tests including parser/projection), and relevant bridge/
+relay tests. Full fixture pipeline passed on Mint with zero Apple requests.
 
-Validation: `python3 -m unittest discover -s deploy/icloud-calendar/tests -v`.
-
-These primitives are not a production-ready sync service. Live Apple compatibility,
-full multistatus/partial-result handling, recurring-event normalization, snapshot
-retention, calendar selection persistence, authentication to the frame and frontend
-calendar-only activation still need implementation/acceptance after approval.
-The allowed Apple endpoint names are an initial restrictive implementation rule,
-not a guaranteed complete Apple service contract. New discovered hosts fail closed
-pending review, not an automatic expansion of the credential destination list.
-
-The proposed architecture, comparison, account permissions, secure entry and
-activation/rollback boundaries are in
-[the private calendar proposal](../../docs/pf1007l-private-icloud-plan.md).
+Follow [implementation, account choice and deployment/rollback runbook](../../docs/pf1007l-calendar-integration.md).

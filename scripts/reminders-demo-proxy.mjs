@@ -19,7 +19,7 @@ export function remindersDemoHandler(config, secure) {
       res.end(JSON.stringify(value));
     };
     if (url.search) { reply(400, { error: 'Demo query strings unavailable' }); return true; }
-    if (['session', 'snapshot', 'complete', 'device/challenge', 'device/prove'].includes(route)) {
+    if (['session', 'snapshot', 'calendar', 'complete', 'device/challenge', 'device/prove'].includes(route)) {
       if ((['complete', 'device/challenge', 'device/prove'].includes(route) ? req.method !== 'POST' : req.method !== 'GET')) {
         reply(405, { error: 'Method unavailable' }); return true;
       }

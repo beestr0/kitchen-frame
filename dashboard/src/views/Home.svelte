@@ -1,5 +1,6 @@
 <script>
   import Icon from '../components/Icon.svelte';
+  import CalendarStatus from '../components/CalendarStatus.svelte';
   import EventRow from '../components/EventRow.svelte';
   import TaskRow from '../components/TaskRow.svelte';
   import NowPlaying from '../components/NowPlaying.svelte';
@@ -65,6 +66,7 @@
     <!-- The list scrolls inside the widget on a busy day; the footer action always stays visible. -->
     <div class="scroll">
       <h2>Today</h2>
+      <CalendarStatus />
       {#if !calendar.data && calendar.offline}
         <p class="empty">Couldn’t load the calendar.</p>
       {:else}

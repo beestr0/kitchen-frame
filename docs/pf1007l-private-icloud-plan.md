@@ -1,5 +1,10 @@
 # Private iCloud Calendar proposal — approval required
 
+**Implementation update:** the candidate is now built and fixture-tested. Read
+[the current implementation and activation runbook](pf1007l-calendar-integration.md)
+for authoritative status. This older proposal describes the rationale; no Apple
+account has been accessed or credential collected. Account-scope approval is next.
+
 November 14, 2026 UTC. No Apple account login, calendar discovery, credential entry,
 public sharing, live synchronization or deployment was performed. Weather and all
 existing Linux/Cloudflare/Android services remain unchanged. Preparation is local.
