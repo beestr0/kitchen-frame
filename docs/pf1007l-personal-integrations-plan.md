@@ -1,5 +1,17 @@
 # PF1007L personal integration plan
 
+**Latest demonstration checkpoint:** the isolated native Reminders/Radicale/frame
+loop is verified for PF1007L Test, including Siri. See
+[integration results and remaining everyday-use gates](pf1007l-reminders-integration.md).
+Only the disposable pilot is authorized; personal migration/production remain off.
+
+**November 14 revision:** Apple Reminders supersedes Todoist for planned task
+integration. Follow the [Reminders assessment](pf1007l-reminders-assessment.md)
+for the proposed private Linux VTODO account, Tailscale access and approval gates.
+Todoist descriptions here document dormant existing code, not the selected roadmap.
+No task account, migration or synchronization is authorized or enabled. The private
+iCloud Calendar plan remains separate and read-only for actual calendar events.
+
 Prepared November 14, 2026 UTC. The permanent kiosk URL is HTTPS; the Linux HTTP
 fallback must remain demo-only. Weather was subsequently authorized, deployed and physically verified; see
 [weather results](pf1007l-weather.md). All other integrations remain disabled and

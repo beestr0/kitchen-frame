@@ -28,8 +28,7 @@ def main():
     output = args.output_directory.resolve(); output.mkdir(mode=0o700, parents=True, exist_ok=True)
     remote = shlex.join(['sudo', '--', 'python3', args.stage + '/install_host.py',
                          '--stage', args.stage, '--adopt-existing', '--coordinate-proof'])
-    ssh = ['ssh', '-tt', '-S', '/private/tmp/pf1007l-server-ssh/control',
-           '-o', 'StrictHostKeyChecking=yes', 'hub@10.157.1.115', remote]
+    ssh = ['ssh', '-tt', '-o', 'StrictHostKeyChecking=yes', 'pf1007l-mint', remote]
     log = output / 'corrected-installer-terminal.txt'
     if log.exists():
         archive = log.with_name('corrected-installer-terminal-' + str(time.time_ns()) + '.txt')

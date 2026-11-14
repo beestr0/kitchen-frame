@@ -7,6 +7,7 @@ import net from 'node:net';
 import { X509Certificate, createPrivateKey } from 'node:crypto';
 import { readFileSync, statSync, lstatSync, unlinkSync, chmodSync } from 'node:fs';
 import { createSecureContext } from 'node:tls';
+import { remindersDemoHandler } from './reminders-demo-proxy.mjs';
 
 const upstream = new URL('https://pf1007l-desk-dashboard.pages.dev');
 const config = JSON.parse(readFileSync(process.argv[2], 'utf8'));
@@ -82,6 +83,7 @@ const authority = `${secure ? config.tls.hostname : bindAddress}:${port}`;
 const origin = `${secure ? 'https' : 'http'}://${authority}`;
 const contentSecurityPolicy = `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' ${secure ? 'wss' : 'ws'}://${authority}; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`;
 const stats = { requests: 0, denied: 0, upstreamResponses: 0, tlsVerified: 0, upgrades: 0, upstreamErrors: 0 };
+const demoReminders = remindersDemoHandler(config, secure);
 const sockets = new Set();
 const tunneledClients = new Map();
 const agent = new https.Agent({ keepAlive: true, maxSockets: 8, maxFreeSockets: 2 });
@@ -113,8 +115,10 @@ function parseAllowed(req) {
   // Monitoring on the server must not grant other local services access to private APIs.
   const healthOnly = req.method === 'GET' && url.pathname === '/__proxy_health' && healthClients.includes(remote);
   if (!allowedClients.includes(remote) && !healthOnly) return null;
+  req.pilotRemote = remote;
   url.searchParams.delete('key'); // frontend may send an empty ?key=; never propagate it
   if (!['GET', 'HEAD', 'POST'].includes(req.method)) return null;
+  if (secure && config.remindersDemo?.enabled === true && url.pathname.startsWith('/__reminders-demo/')) return url;
   // Demo edits are local to the browser. Real cloud writes require a separate opt-in.
   if (req.method === 'POST' && config.allowApiWrites !== true) return null;
   if (req.method === 'POST' && !/^\/api\/(lists\/(todo|groceries)(\/[^/]+\/done)?|messages\/[^/]+\/dismiss)$/.test(url.pathname)) return null;
@@ -174,6 +178,7 @@ const handleRequest = (req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     return res.end(JSON.stringify({ ...stats, uptimeSeconds: process.uptime(), memory: process.memoryUsage(), cpu: process.cpuUsage() }));
   }
+  if (demoReminders?.(req, res, url)) return;
   // Permanent-host POC: even if live integrations are added upstream later, this
   // explicitly demo-only endpoint must never deliver their private data over HTTP.
   const liveWeather = secure && config.liveWeather === true && req.method === 'GET' && url.pathname === '/api/weather' && !url.search;

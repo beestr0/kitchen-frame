@@ -1,0 +1,40 @@
+# Prepared only: install after server preflight, isolated venv and private credentials.
+[Unit]
+Description=PF1007L disposable Reminders CalDAV pilot
+After=network.target
+StartLimitIntervalSec=120
+StartLimitBurst=3
+
+[Service]
+Type=simple
+DynamicUser=yes
+WorkingDirectory=/opt/pf1007l-reminders-demo
+ExecStart=/opt/pf1007l-reminders-demo/venv/bin/python -m radicale --config ${CREDENTIALS_DIRECTORY}/config
+LoadCredential=config:/etc/pf1007l-reminders-demo/config
+LoadCredential=users:/etc/pf1007l-reminders-demo/users
+StateDirectory=pf1007l-reminders-demo
+StateDirectoryMode=0700
+UMask=0077
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_INET AF_UNIX
+CapabilityBoundingSet=
+IPAddressDeny=any
+IPAddressAllow=localhost
+Nice=10
+MemoryHigh=96M
+MemoryMax=192M
+TasksMax=32
+CPUQuota=25%
+
+[Install]
+WantedBy=multi-user.target

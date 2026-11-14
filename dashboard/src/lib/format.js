@@ -32,6 +32,7 @@ function indexDays(events) {
   const byDay = new Map();
   const add = (k, e) => { if (!byDay.has(k)) byDay.set(k, []); byDay.get(k).push(e); };
   for (const e of events) {
+    if (e.kind === 'reminder' && e.dueDay) { add(e.dueDay, e); continue; }
     if (!e.allDay) { add(dayKey(new Date(e.start)), e); continue; }
     const [y, m, d] = e.start.split('-').map(Number);
     for (let i = 0, k = e.start; k < e.end && i < 400; k = dayKey(new Date(y, m - 1, d + ++i))) add(k, e);
@@ -39,9 +40,11 @@ function indexDays(events) {
   return byDay;
 }
 export function isPast(e, now) {
+  if (e.kind === 'reminder') return false;
   return !e.allDay && Date.parse(e.end) <= now.getTime();
 }
 export function isNow(e, now) {
+  if (e.kind === 'reminder') return false;
   return !e.allDay && Date.parse(e.start) <= now.getTime() && now.getTime() < Date.parse(e.end);
 }
 // "5:00 – 6:30 PM", or "11:00 AM – 1:00 PM" across noon.

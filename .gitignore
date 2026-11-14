@@ -2,6 +2,7 @@ node_modules/
 dist/
 dist-desk/
 dist-desk-pages/
+dist-reminders-demo/
 .DS_Store
 .wrangler/
 # Upstream repo, cloned for reference: git clone https://github.com/wesbos/photo-frame-dashboard reference/photo-frame-dashboard
@@ -17,6 +18,17 @@ kiosk/build/
 
 # Python deployment helpers
 __pycache__/
+
+# Reminders runtime state/credentials must never become source artifacts.
+/deploy/reminders/*-status.json
+/deploy/reminders/*-action.json
+/deploy/reminders/*.sqlite*
+/deploy/reminders/demo-account.json
+/deploy/reminders/settings.json
+/deploy/reminders/users
+/deploy/reminders/proxy-key
+/deploy/reminders/bridge-manifest.json
+/deploy/ssh/id_*
 
 # Isolated LAN TLS kiosk build and downloaded Maven artifacts
 kiosk/build-lan-tls/

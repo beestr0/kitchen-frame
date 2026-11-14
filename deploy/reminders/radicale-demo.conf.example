@@ -1,0 +1,34 @@
+# TEMPLATE, not installed. Confirm that loopback port 5238 is free before staging.
+# Requires a reviewed Radicale 3.x release >= 3.5.10 and its bcrypt dependency.
+[server]
+hosts = 127.0.0.1:5238
+max_connections = 4
+max_content_length = 1048576
+max_resource_size = 262144
+timeout = 20
+
+[auth]
+type = htpasswd
+htpasswd_filename = /run/credentials/pf1007l-reminders-demo.service/users
+htpasswd_encryption = bcrypt
+delay = 1
+
+[rights]
+type = owner_only
+permit_delete_collection = False
+permit_overwrite_collection = False
+
+[storage]
+type = multifilesystem
+filesystem_folder = /var/lib/pf1007l-reminders-demo/collections
+
+[web]
+type = none
+
+[logging]
+level = warning
+mask_passwords = True
+
+[headers]
+Cache-Control = no-store
+X-Content-Type-Options = nosniff

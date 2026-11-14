@@ -19,7 +19,7 @@
   }
 </script>
 
-<button class="row" class:checking class:plain={!lines} disabled={checking} onclick={tap} aria-label={'Complete ' + item.content}>
+<button class="row" class:checking class:plain={!lines} disabled={checking || item.canComplete === false} onclick={tap} aria-label={'Complete ' + item.content}>
   <span class="ring">{#if checking}<Icon name="check" size={17} />{/if}</span>
   <span class="body">
     <span class="main">

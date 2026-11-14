@@ -1,13 +1,13 @@
 <script>
   import EventRow from '../components/EventRow.svelte';
-  import { clock, calendar } from '../lib/state.svelte.js';
+  import { clock, calendarEvents } from '../lib/state.svelte.js';
   import { calVars, eventsOn, addDays, dayKey } from '../lib/format.js';
 
   // A month of dots (iPhone Calendar style) beside the chosen day's events. offset: months from now.
   let { offset = 0 } = $props();
   const MAX_DOTS = 3;
 
-  let events = $derived(calendar.data ? calendar.data.events : []);
+  let events = $derived(calendarEvents());
   // Rebuilt when the day changes, not every minute (a derived string only updates when it differs).
   let todayKey = $derived(dayKey(clock.now));
   let first = $derived.by(() => { const [y, m] = todayKey.split('-').map(Number); return new Date(y, m - 1 + offset, 1); });

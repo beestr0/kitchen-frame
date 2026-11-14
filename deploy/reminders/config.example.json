@@ -1,0 +1,12 @@
+{
+  "enabled": false,
+  "provider": "private-caldav-vtodo",
+  "selectedLists": [],
+  "allowCompletion": false,
+  "allowRecurringCompletion": false,
+  "allowCreation": false,
+  "allowDeletion": false,
+  "allowCloudUpload": false,
+  "timezone": "America/Indiana/Indianapolis",
+  "framePersistentCache": false
+}

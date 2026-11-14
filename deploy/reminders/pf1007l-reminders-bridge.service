@@ -1,0 +1,34 @@
+[Unit]
+Description=PF1007L disposable collection dashboard bridge
+After=pf1007l-reminders-demo.service
+Requires=pf1007l-reminders-demo.service
+
+[Service]
+DynamicUser=yes
+ExecStart=/opt/pf1007l-reminders-demo/venv/bin/python /opt/pf1007l-reminders-bridge/task_bridge.py
+LoadCredential=demo-account:/etc/pf1007l-reminders-demo/demo-account.json
+LoadCredential=bridge-settings:/etc/pf1007l-reminders-bridge/settings.json
+StateDirectory=pf1007l-reminders-bridge
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_INET AF_UNIX
+CapabilityBoundingSet=
+IPAddressDeny=any
+IPAddressAllow=localhost
+MemoryHigh=64M
+MemoryMax=128M
+CPUQuota=25%
+TasksMax=24
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

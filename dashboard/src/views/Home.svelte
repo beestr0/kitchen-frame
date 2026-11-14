@@ -4,12 +4,12 @@
   import TaskRow from '../components/TaskRow.svelte';
   import NowPlaying from '../components/NowPlaying.svelte';
   import { nowPlaying } from '../lib/ha.svelte.js';
-  import { clock, calendar, weather, lists, ui, completeItem, loadCalendar, loadList } from '../lib/state.svelte.js';
+  import { clock, calendar, calendarEvents, weather, lists, ui, completeItem, loadCalendar, loadList } from '../lib/state.svelte.js';
   import { clockTime, longDate, eventsOn, addDays, weatherInfo, time, dow } from '../lib/format.js';
 
-  let events = $derived(calendar.data ? calendar.data.events : []);
+  let events = $derived(calendarEvents());
   // Finished events drop off Home; the Calendar tab still shows them.
-  let today = $derived(eventsOn(events, clock.now).filter((e) => e.allDay || Date.parse(e.end) > clock.now.getTime()));
+  let today = $derived(eventsOn(events, clock.now).filter((e) => e.kind === 'reminder' || e.allDay || Date.parse(e.end) > clock.now.getTime()));
   // Upcoming: the rest of this week, tomorrow through Sunday (the feed is already sorted).
   let upcoming = $derived.by(() => {
     const tomorrow = addDays(clock.now, 1).getTime();

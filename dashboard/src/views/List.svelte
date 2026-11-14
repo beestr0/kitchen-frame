@@ -1,7 +1,7 @@
 <script>
   import Icon from '../components/Icon.svelte';
   import TaskRow from '../components/TaskRow.svelte';
-  import { clock, lists, completeItem, addItem } from '../lib/state.svelte.js';
+  import { clock, lists, completeItem, addItem, remindersPilot } from '../lib/state.svelte.js';
   // board: Tasks, one card per Todoist section. Otherwise (Groceries) one card, items in columns,
   // grouped under section names when the project has sections.
   let { name, title, accent, accentText, board = false } = $props();
@@ -56,7 +56,7 @@
       </form>
     {:else}
       <h1>{list.project || title}<span class="count">{items.length} {items.length === 1 ? noun[0] : noun[1]}</span></h1>
-      <button class="btn tint" onclick={openAdd}><Icon name="plus" size={20} />Add</button>
+      {#if !remindersPilot || name !== 'todo'}<button class="btn tint" onclick={openAdd}><Icon name="plus" size={20} />Add</button>{/if}
     {/if}
   </header>
   {#if note}<p class="note">{note}</p>{/if}
@@ -65,8 +65,8 @@
     <div class="sheet empty">
       <span class="empty-icon"><Icon name={name === 'todo' ? 'check' : 'cart'} size={34} /></span>
       <h2>{name === 'todo' ? 'All done' : 'Grocery list is empty'}</h2>
-      <p>Add {noun[1]} here or in Todoist.</p>
-      {#if !adding}<button class="btn tint" onclick={openAdd}><Icon name="plus" size={20} />Add</button>{/if}
+      <p>{remindersPilot && name === 'todo' ? 'Add reminders on your iPhone in PF1007L Test.' : 'Add ' + noun[1] + ' here or in Todoist.'}</p>
+      {#if !adding && (!remindersPilot || name !== 'todo')}<button class="btn tint" onclick={openAdd}><Icon name="plus" size={20} />Add</button>{/if}
     </div>
   {:else if board}
     {#if loose.length}

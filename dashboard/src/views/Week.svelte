@@ -1,6 +1,6 @@
 <script>
   import Icon from '../components/Icon.svelte';
-  import { clock, calendar, loadCalendar } from '../lib/state.svelte.js';
+  import { clock, calendar, calendarEvents, loadCalendar, remindersPilot, reminders, completeItem } from '../lib/state.svelte.js';
   import { calVars, eventsOn, addDays, time, isPast } from '../lib/format.js';
   import Month from './Month.svelte';
 
@@ -14,7 +14,7 @@
   let open = $state(null); // tapped event shows its full title, time range and location
   let days = $derived(Array.from({ length: 7 }, (_, i) => {
     const day = addDays(clock.now, week * 7 + i);
-    return { day, i, today: week === 0 && i === 0, events: eventsOn(calendar.data ? calendar.data.events : [], day) };
+    return { day, i, today: week === 0 && i === 0, events: eventsOn(calendarEvents(), day) };
   }));
   const short = (d) => d.toLocaleDateString([], { month: 'short', day: 'numeric' });
   let label = $derived(view === 'month'
@@ -35,7 +35,7 @@
 
 <div class="wrap">
   <header class="bar">
-    <h2>{label}</h2>
+      <h2>{label}{#if remindersPilot}<small> · PF1007L Test demo{reminders.stale ? ' · Outdated' : ''}</small>{/if}</h2>
     <div class="pager">
       {#if page > 0}<button class="today-btn" onclick={() => go(0)}>Today</button>{/if}
       <div class="seg" role="tablist" aria-label="Calendar view">
@@ -65,12 +65,18 @@
           <!-- Busy days scroll inside their column; nothing is hidden behind a count. -->
           <div class="events">
             {#each d.events as e (key(e))}
+              {#if e.kind === 'reminder'}
+                <button class="ev" style={calVars(e)} disabled={!e.task.canComplete || reminders.stale} onclick={() => completeItem('todo', e.task)} aria-label={'Complete ' + e.title}>
+                  <span class="title">○ {e.title}</span><span class="t">Due{e.allDay ? '' : ' ' + time(new Date(e.start))}</span>
+                </button>
+              {:else}
               <button class="ev" class:past={isPast(e, clock.now)} class:open={open === key(e)} style={calVars(e)}
                 onclick={() => (open = open === key(e) ? null : key(e))}>
                 <span class="title">{e.title}</span>
                 {#if !e.allDay}<span class="t num">{time(new Date(e.start))}{open === key(e) ? ' – ' + time(new Date(e.end)) : ''}</span>{/if}
                 {#if open === key(e) && e.location}<span class="t">{e.location}</span>{/if}
               </button>
+              {/if}
             {/each}
           </div>
         </section>
@@ -85,6 +91,7 @@
   .wrap { position: relative; height: 100%; padding: 0 28px 28px; display: flex; flex-direction: column; }
   .bar { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 6px 10px; }
   .bar h2 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -.01em; }
+  .bar small { font-size: 14px; color: var(--secondary); font-weight: 500; }
   .pager { display: flex; align-items: center; gap: 8px; }
   .nav { position: relative; width: 52px; height: 48px; border-radius: 12px; background: var(--track); display: grid; place-items: center; color: var(--label); }
   .nav:disabled { opacity: .3; }

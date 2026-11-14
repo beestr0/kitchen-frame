@@ -7,6 +7,8 @@ import { ha, announce } from './ha.svelte.js';
 import { resolveTheme } from './theme.js';
 import { focus } from './focus.svelte.js';
 import { remaining } from './focus.js';
+import { projectReminders } from './reminders.js';
+export const remindersPilot = import.meta.env.VITE_REMINDERS_PILOT === true;
 
 const MIN = 60 * 1000;
 const QUIET_FROM = 22, QUIET_TO = 7; // quiet hours: messages are shown but not read aloud
@@ -52,6 +54,37 @@ export function setSetting(key, value) {
 export const clock = $state({ now: new Date() });
 // In demo mode nothing real is shown at boot, even briefly, and nothing demo is cached as real.
 export const calendar = $state({ data: ui.demo ? demoCalendar(new Date()) : cached('calendar'), offline: false });
+export const reminders = $state({ events: [], stale: true, error: null, lastSuccess: null });
+let pilotCSRF;
+export function calendarEvents() {
+  const events = calendar.data?.events || [];
+  return remindersPilot ? [...events, ...reminders.events].sort((a, b) => a.start.localeCompare(b.start)) : events;
+}
+async function pilotRequest(route, init = {}) {
+  const response = await fetch('/__reminders-demo/' + route, { cache: 'no-store', credentials: 'same-origin', ...init });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.error || 'Demo reminders unavailable');
+  return body;
+}
+export function loadReminders() {
+  return single('demo-reminders', async () => {
+    try {
+      if (!pilotCSRF) pilotCSRF = (await pilotRequest('session')).csrf;
+      const snapshot = await pilotRequest('snapshot');
+      const projection = projectReminders(snapshot);
+      // Never persist task data or provider/session credentials in localStorage.
+      if (JSON.stringify(lists.todo.items) !== JSON.stringify(projection.tasks)) lists.todo.items = projection.tasks;
+      if (JSON.stringify(reminders.events) !== JSON.stringify(projection.events)) reminders.events = projection.events;
+      Object.assign(lists.todo, { sections: [{ id: 'pf1007l-test', name: 'PF1007L Test' }], people: {}, project: 'PF1007L Test · Demo',
+        error: snapshot.stale ? snapshot.error || 'Demo reminders are out of date' : null });
+      Object.assign(reminders, { stale: snapshot.stale, error: lists.todo.error, lastSuccess: snapshot.lastSuccess });
+    } catch (error) {
+      reminders.stale = true; reminders.error = lists.todo.error = error.message;
+      lists.todo.items = (lists.todo.items || []).map(item => ({ ...item, canComplete: false }));
+      reminders.events = reminders.events.map(event => ({ ...event, task: { ...event.task, canComplete: false } }));
+    }
+  });
+}
 export const weather = $state({ data: cached('weather'), error: null });
 export const photos = $state({ items: ui.demo ? [] : cached('photos') || [] });
 // Recipes saved by agents or from Explore (GET /api/recipes).
@@ -92,7 +125,7 @@ export const messages = $state({ items: [] });
 export const lists = $state({
   // sections (Todoist order) and people (assignee id -> name) come with each list.
   groceries: { items: ui.demo ? demoList('groceries', new Date()) : cached('groceries'), error: null, ...(ui.demo ? demoMeta('groceries') : cached('groceries-meta') || { sections: [], people: {} }) },
-  todo: { items: ui.demo ? demoList('todo', new Date()) : cached('todo'), error: null, ...(ui.demo ? demoMeta('todo') : cached('todo-meta') || { sections: [], people: {} }) },
+  todo: { items: remindersPilot ? [] : ui.demo ? demoList('todo', new Date()) : cached('todo'), error: null, ...(ui.demo ? demoMeta('todo') : cached('todo-meta') || { sections: [], people: {} }) },
 });
 
 export function loadCalendar() {
@@ -216,6 +249,7 @@ export async function dismissMessage(m) {
 }
 
 export function loadList(name) {
+  if (remindersPilot && name === 'todo') return loadReminders();
   if (ui.demo) {
     // Keep demo edits (ticks, additions) until demo mode is switched off and on again.
     if (!lists[name].items) lists[name].items = demoList(name, new Date());
@@ -237,6 +271,22 @@ export function loadList(name) {
 
 // Optimistic: the row disappears on tap and comes back if Todoist refuses.
 export async function completeItem(name, item) {
+  if (remindersPilot && name === 'todo') {
+    if (!item.canComplete || reminders.stale) return;
+    try {
+      const operation = 'frame-' + crypto.getRandomValues(new Uint32Array(4)).join('-');
+      await pilotRequest('complete', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Pilot-CSRF': pilotCSRF },
+        body: JSON.stringify({ id: item.id, version: item.version, operation }) });
+      // A poll started before the write may still be completing. Wait for it,
+      // then issue a fresh read so its older copy cannot resurrect the row.
+      if (inflight.has('demo-reminders')) await inflight.get('demo-reminders');
+      await loadReminders();
+    } catch (error) {
+      await loadReminders();
+      lists.todo.error = reminders.error = error.message + ' · refreshed; completion is not assumed';
+    }
+    return;
+  }
   const list = lists[name];
   list.items = list.items.filter((i) => i.id !== item.id);
   if (ui.demo) return; // demo: never touches Todoist
@@ -250,6 +300,7 @@ export async function completeItem(name, item) {
 }
 
 export async function addItem(name, content) {
+  if (remindersPilot && name === 'todo') { lists.todo.error = 'Create demonstration reminders in the iPhone PF1007L Test list.'; return false; }
   const list = lists[name];
   if (ui.demo) { list.items = [...(list.items || []), { id: 'demo-' + Date.now(), content }]; return true; }
   try {
@@ -284,6 +335,7 @@ function applyTheme() {
 }
 
 export function start() {
+  if (remindersPilot) every(30000, loadReminders, () => !ui.idle && ['home', 'todo', 'calendar'].includes(ui.tab));
   // Clock aligned to the minute boundary.
   (function tick() {
     clock.now = new Date();
