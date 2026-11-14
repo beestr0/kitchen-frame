@@ -1,5 +1,10 @@
 # Everyday-use hardening plan — no production activation authorized
 
+**Latest priority:** live Apple/iCloud Calendar comes next. Cellular milestone is
+closed (`64aa9bb`); further recurrence/background/soak work below is deferred and
+not a blocker to calendar development. Follow [the completion plan](pf1007l-completion-plan.md)
+and the automated-first/batched hardware workflow in NEXT_SESSION.md.
+
 The verified disposable demonstration is the rollback baseline. Keep PF1007L Test
 as the only selected collection throughout hardening. Existing iCloud reminders,
 default lists, calendar preparation, weather, Jellyfin and Tailscale remain intact.

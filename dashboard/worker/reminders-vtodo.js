@@ -9,7 +9,7 @@ export function completeVtodo(text, uid, now = new Date()) {
       todos[0].getFirstPropertyValue('uid') !== uid) throw new Error('Unexpected task resource');
   const todo = todos[0];
   // Never mark an entire recurring series complete by guessing occurrence semantics.
-  if (['rrule', 'rdate', 'recurrence-id'].some((name) => todo.hasProperty(name))) {
+  if (['rrule', 'rdate', 'recurrence-id', 'exdate', 'exrule'].some((name) => todo.hasProperty(name))) {
     throw new Error('Recurring completion requires compatibility validation');
   }
   if (todo.getFirstPropertyValue('status') === 'CANCELLED') throw new Error('Task cancelled');

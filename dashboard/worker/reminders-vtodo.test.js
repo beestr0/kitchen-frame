@@ -25,3 +25,11 @@ test('recurring tasks, detached instances, wrong UID and cancelled tasks fail cl
   assert.throws(() => completeVtodo(resource(), 'other'), /Unexpected/);
   assert.throws(() => completeVtodo(resource('STATUS:CANCELLED'), 'demo'), /cancelled/);
 });
+
+
+test('exclusion-only recurrence also fails closed before any completion serialization', () => {
+  for (const property of ['EXDATE;VALUE=DATE:20261115', 'EXRULE:FREQ=WEEKLY;BYDAY=SA,SU']) {
+    const text = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VTODO\r\nUID:fixture\r\nSUMMARY:Invented\r\n'+property+'\r\nEND:VTODO\r\nEND:VCALENDAR\r\n';
+    assert.throws(() => completeVtodo(text, 'fixture'), /Recurring/);
+  }
+});

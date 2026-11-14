@@ -73,6 +73,17 @@ def parse_task(text):
     uids = [str(x.uid.value) if hasattr(x, 'uid') else '' for x in tasks]
     if len(tasks) > 100 or len(set(uids)) != 1 or not uids[0] or sum('recurrence-id' not in x.contents for x in tasks) > 1:
         raise TaskError(503, 'Ambiguous VTODO resource', 'invalid_snapshot')
+    # Two representations of the same recurrence instance are ambiguous. Reject
+    # the entire resource so the existing last-good snapshot is retained.
+    instances = []
+    for component in tasks:
+        values = component.contents.get('recurrence-id', [])
+        if len(values) > 1:
+            raise TaskError(503, 'Ambiguous VTODO resource', 'invalid_snapshot')
+        if values:
+            instances.append(json.dumps(due_value(values[0].value), sort_keys=True))
+    if len(instances) != len(set(instances)):
+        raise TaskError(503, 'Ambiguous VTODO resource', 'invalid_snapshot')
     # Preserve resources with recurrence exceptions, but don't guess instance writes.
     task = next((x for x in tasks if 'recurrence-id' not in x.contents), tasks[0])
     if not hasattr(task, 'uid') or not str(task.uid.value):

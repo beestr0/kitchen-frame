@@ -7,6 +7,20 @@ verified activation tooling, recovery tests and documentation. Use `git log -1`
 and the branch upstream to identify its final commit; no deployment is required
 to restore this source checkpoint. No production/personal migration is authorized.
 
+## Primary priority — live Apple/iCloud Calendar
+
+Owner's latest instruction: **real Apple Calendar is the main goal and next feature**.
+Current operation is safely checkpointed; no deployment was active. Await the
+owner's detailed calendar requirements, then prioritize the existing private
+read-only Calendar plan above recurrence research, optional reliability work and
+other integrations. No Apple account access, credentials or calendar connection
+is authorized by preparation alone. Read [completion plan](pf1007l-completion-plan.md).
+
+New recurring-reminder safeguards and disposable actual-Radicale tests passed;
+see [recurrence status](pf1007l-recurrence-status.md). These are source-only and
+**not deployed**; recurring completion remains blocked. Live core stays `8aade81`.
+Cellular closure was pushed as `64aa9bb`. Use `git log -1` for this follow-up commit.
+
 ## Cellular/Tailscale milestone closed — November 14
 
 Read [the timestamped report](pf1007l-cellular-testing.md). Owner-confirmed home
@@ -20,7 +34,7 @@ current automatic renewals observed; all services healthy, no restart/redeployme
 **Exact background fetch and long-term cellular reliability are not fully verified.**
 Siri transcription variant lacks direct server UID/timing because of the exact-title
 observer filter. No Calendar-view recheck, Mac-off run or new FPS measurement was
-performed. Next feature: automated recurrence compatibility fixtures and safe implementation.
+performed. Next feature: live private Apple/iCloud Calendar after detailed requirements.
 Longer background timing/soak are separate nonblocking work, not another interactive gate.
 Read-only observer remains bounded to one hour from about 21:37 UTC; it may exit
 naturally or owner can Ctrl+C its native Terminal. Do not assume it is still alive.
@@ -56,8 +70,8 @@ lists and personal iCloud data. No production or personal migration is authorize
    curl --fail --silent --max-time 8 --resolve beestr0.duckdns.org:8789:10.157.1.115 https://beestr0.duckdns.org:8789/__proxy_health
    ```
 
-4. **Next implementation priority: recurring-reminder compatibility using disposable
-   fixtures**, then unfinished integrations, especially private iCloud Calendar.
+4. **Next implementation priority: live private Apple/iCloud Calendar**, following
+   the owner’s forthcoming detailed requirements and existing read-only preparation.
    Keep recurring completion blocked until proven correct. Do not repeat completed
    physical cellular/auth tests. Personal-account access requires separate approval.
 5. The scoped native root session was deliberately **finished**. No password is
