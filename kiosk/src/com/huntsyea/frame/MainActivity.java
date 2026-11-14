@@ -19,15 +19,20 @@ import android.webkit.WebResourceError;
 import android.webkit.JavascriptInterface;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.TextView;
+import android.widget.ScrollView;
+import java.io.ByteArrayInputStream;
+import java.util.Collections;
 
 /**
  * Full-screen kiosk for the family dashboard.
  *
  * Set or change the dashboard URL over ADB (remembered across reboots):
- *   adb shell am start -n com.huntsyea.frame/.MainActivity -d 'https://example.workers.dev/?key=...'
+ *   adb shell am start -n com.huntsyea.frame/.MainActivity -d 'https://example.workers.dev/'
  * Remote debugging (chrome://inspect) only while launched with:  --ez debug true
  * Escape hatch: hold two fingers still on the screen for 2 seconds.
  *
@@ -54,6 +59,9 @@ public class MainActivity extends Activity {
   private boolean escapeArmed;
   private boolean loadedOnce;
   private boolean mainFrameFailed;
+  private boolean deviceAuthAvailable;
+  boolean deviceAuthEnabled() { return getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean("device-auth-v1", false); }
+  void setDeviceAuthAvailable(boolean available) { deviceAuthAvailable = available; }
 
   // The frame often starts before Wi-Fi is up: keep retrying the dashboard until it loads.
   private final Runnable retry = new Runnable() {
@@ -73,9 +81,10 @@ public class MainActivity extends Activity {
       escapeArmed = false;
       new AlertDialog.Builder(MainActivity.this)
           .setTitle("Frame")
-          .setItems(new String[] {"Reload dashboard", "Android settings"}, (d, which) -> {
+          .setItems(new String[] {"Reload dashboard", "Android settings", "Device enrollment (demo)"}, (d, which) -> {
             if (which == 0) web.reload();
-            else startActivity(new Intent(Settings.ACTION_SETTINGS));
+            else if (which == 1) startActivity(new Intent(Settings.ACTION_SETTINGS));
+            else showDeviceEnrollment();
           })
           .setNegativeButton("Close", null)
           .show();
@@ -101,7 +110,21 @@ public class MainActivity extends Activity {
     web.setWebViewClient(new WebViewClient() {
       @Override
       public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-        return false; // stay inside the kiosk
+        return deviceAuthEnabled() && !DevicePolicy.trustedPage(request.getUrl().toString());
+      }
+
+      @Override
+      public boolean shouldOverrideUrlLoading(WebView view, String requested) {
+        return deviceAuthEnabled() && !DevicePolicy.trustedPage(requested);
+      }
+
+      @Override
+      public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+        if (deviceAuthEnabled() && !DevicePolicy.trustedResource(request.getUrl().toString())) {
+          return new WebResourceResponse("text/plain", "UTF-8", 403, "Blocked",
+              Collections.singletonMap("Cache-Control", "no-store"), new ByteArrayInputStream(new byte[0]));
+        }
+        return null;
       }
 
       @Override
@@ -145,6 +168,7 @@ public class MainActivity extends Activity {
 
     handleIntent(getIntent());
     if (url == null) url = getSharedPreferences(PREFS, MODE_PRIVATE).getString("url", null);
+    if (url != null && deviceAuthEnabled() && !DevicePolicy.trustedPage(url)) url = null;
     if (url != null) { web.loadUrl(url); handler.postDelayed(watchdog, WATCHDOG_MS); }
     else web.loadData("<body style='background:#000;color:#999;font:24px sans-serif;padding:48px'>"
         + "No dashboard URL set. Set one over ADB:<br><br><code>adb shell am start -n "
@@ -163,6 +187,7 @@ public class MainActivity extends Activity {
     WebView.setWebContentsDebuggingEnabled(intent != null && intent.getBooleanExtra("debug", false));
     Uri data = intent == null ? null : intent.getData();
     if (data == null) return false;
+    if (deviceAuthEnabled() && !DevicePolicy.trustedPage(data.toString())) return false;
     url = data.toString();
     getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString("url", url).apply();
     handler.removeCallbacks(retry);
@@ -196,6 +221,41 @@ public class MainActivity extends Activity {
   private void scheduleRetry() {
     handler.removeCallbacks(retry);
     handler.postDelayed(retry, RETRY_MS);
+  }
+
+  /** Physical owner step only; no Intent or JavaScript can enable device enrollment. */
+  private void showDeviceEnrollment() {
+    if (!deviceAuthAvailable || !DevicePolicy.trustedPage(url)) {
+      new AlertDialog.Builder(this).setMessage("Open the demo in a verified native-auth build first. The working configuration is unchanged.").setPositiveButton("Close", null).show();
+      return;
+    }
+    new Thread(() -> {
+      try {
+        DeviceKey key = new DeviceKey("pf1007l-device-v1");
+        String details = "Public enrollment material only\n\nDevice ID:\n" + key.identifier()
+            + "\n\nPublic SPKI:\n" + key.publicKey() + "\n\nHardware-backed: " + key.hardwareBacked()
+            + "\n\nEnroll and verify this public key on Linux before enabling. Existing provider passwords never go onto the frame.";
+        runOnUiThread(() -> {
+          TextView text = new TextView(this); text.setText(details); text.setTextIsSelectable(true); text.setPadding(24,24,24,24);
+          ScrollView scroll = new ScrollView(this); scroll.addView(text);
+          AlertDialog.Builder enrollment = new AlertDialog.Builder(this).setTitle("Device enrollment · owner review").setView(scroll)
+              .setNegativeButton("Cancel", null);
+          if (deviceAuthEnabled()) enrollment.setNeutralButton("Rollback options", (d, w) ->
+              new AlertDialog.Builder(this).setMessage("Only disable after restoring the reviewed legacy demo on Linux. This never authorizes an unenrolled device on a device-v1 server.")
+                  .setNegativeButton("Cancel", null).setPositiveButton("Disable native auth", (a, b) -> {
+                    getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("device-auth-v1", false).apply();
+                    recreate();
+                  }).show());
+          enrollment
+              .setPositiveButton("Server enrolled; enable", (dialog, which) -> {
+                getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("device-auth-v1", true).apply();
+                recreate();
+              }).show();
+        });
+      } catch (Exception unavailable) {
+        runOnUiThread(() -> new AlertDialog.Builder(this).setMessage("Device key unavailable; enrollment was not changed.").setPositiveButton("Close", null).show());
+      }
+    }, "device-enrollment").start();
   }
 
   /** Watches for the two-finger escape hold. Every touch still reaches the page. */

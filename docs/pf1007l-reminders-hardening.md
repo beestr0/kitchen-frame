@@ -5,11 +5,28 @@ as the only selected collection throughout hardening. Existing iCloud reminders,
 default lists, calendar preparation, weather, Jellyfin and Tailscale remain intact.
 This document is a plan, not approval to migrate personal data or reboot the host.
 
+## Autonomous development progress — November 14, 2026
+
+An opt-in native/device/server implementation and isolated tests are now prepared;
+see [protocol, actual device findings and controlled activation](pf1007l-device-auth.md).
+It is **not deployed**. The working `3a74a35` demo remains intact. P-256 signing,
+validated native TLS, cross-runtime verification, app-launch persistence and the
+origin-aware WebView feature passed on the physical frame; Keystore is software-
+backed. Do not enroll without owner review. Sudo was unavailable and no interactive
+prompt was opened during the owner's absence.
+
+Reliability source changes cover transactional cache/revision publication, bounded
+backoff/Retry-After, pending-write recovery, stricter hrefs, recurrence safety and
+bridge survival during Radicale outages. Fixture testing cannot replace cellular,
+full native-session, reboot, restore or multi-day acceptance. Those gates below
+remain open. No new features, provider, production list or migration was activated.
+
 ## Priority 1 — durable, revocable device enrollment
 
-**Next implementation step:** replace the one-time source-IP bootstrap/24-hour
-cookie dependency with explicit native kiosk enrollment, while leaving the demo
-route and existing session working until its replacement passes acceptance.
+**Next implementation step:** controlled demonstration activation/physical acceptance
+of the prepared native enrollment and renewable-session candidate. Leave the current
+demo/session working until its replacement passes acceptance; follow the linked
+runbook, not a fresh installation.
 
 1. Inspect the actual Android/WebView and app signing identity, available Keystore
    algorithms and persistence behavior. Do not assume hardware-backed/non-exportable

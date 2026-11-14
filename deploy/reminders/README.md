@@ -49,3 +49,20 @@ Calendar markers carry `kind: reminder`; existing event components must be adapt
 to render due labels and completion before these markers enter the real UI.
 
 See [assessment and approval gates](../../docs/pf1007l-reminders-assessment.md).
+
+## Authentication/reliability candidate (not deployed)
+
+See [device-auth protocol, actual frame findings and controlled activation](../../docs/pf1007l-device-auth.md).
+The running `3a74a35` demo is preserved. New `device_auth.py` is a required import
+for `task_bridge.py`, even with `authMode` omitted/defaulting to `legacy-demo`.
+Include both in reviewed deployment manifests. `device_registry.py` is an offline
+public authorization editor; it never enables synchronization or reads DAV secrets.
+Device mode additionally requires a root-private `device-registry` systemd credential
+and explicit settings/physical enrollment. No HTTP enrollment route exists.
+`deploy_bridge.py` rejects device-mode upgrades: activation requires the separately
+reviewed sequence, backups and physical acceptance in the linked runbook.
+
+Fixture-only tests now include `test_device_auth.py`, `test_device_http.py`,
+`test_device_registry.py` and `test_recovery.py`. Use unittest discovery with the
+installed Mint venv; no live account/settings file is an input. All private keys in
+tests are invented temporary keys, not the kiosk, SSH, TLS or Apple credentials.

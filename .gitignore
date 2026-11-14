@@ -33,3 +33,6 @@ __pycache__/
 # Isolated LAN TLS kiosk build and downloaded Maven artifacts
 kiosk/build-lan-tls/
 kiosk/deps-lan-tls/
+kiosk/build-auth-probe/
+kiosk/build-auth-tests/
+kiosk/build-auth-candidate/

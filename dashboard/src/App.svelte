@@ -11,7 +11,7 @@
   import Focus from './views/Focus.svelte';
   import Message from './components/Message.svelte';
   import { connectHA } from './lib/ha.svelte.js';
-  import { ui, clock, weather, photos, messages, start, startSlideshow, loadList, photosVisible } from './lib/state.svelte.js';
+  import { ui, clock, weather, photos, messages, start, startSlideshow, loadList, photosVisible, remindersPilot, loadReminders } from './lib/state.svelte.js';
   import { noteAlbum, prepare } from './lib/slides.js';
   import { time, weatherInfo } from './lib/format.js';
 
@@ -36,6 +36,7 @@
 
   // A list tab shows fresh items when opened (Groceries isn't polled while it's closed).
   $effect(() => { if (ui.tab === 'groceries' || ui.tab === 'todo') loadList(ui.tab); });
+  $effect(() => { if (remindersPilot && ui.tab === 'calendar') loadReminders(); });
 </script>
 
 <div class="stage">

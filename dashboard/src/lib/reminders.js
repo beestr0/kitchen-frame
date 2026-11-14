@@ -42,11 +42,23 @@ export function projectReminders(snapshot) {
   if (!Array.isArray(snapshot.items) || snapshot.items.length > 500) throw new Error('Invalid task snapshot');
   const tasks = [], events = [], seen = new Set();
   for (const item of snapshot.items) {
-    if (!/^[a-f0-9]{64}$/.test(item.id) || seen.has(item.id) || typeof item.title !== 'string') throw new Error('Invalid task identity');
+    if (!item || !/^[a-f0-9]{64}$/.test(item.id) || seen.has(item.id) || typeof item.title !== 'string' ||
+        typeof item.version !== 'string' || !item.version) throw new Error('Invalid task identity');
+    for (const field of ['completed', 'cancelled', 'recurring', 'canComplete']) {
+      if (item[field] !== undefined && typeof item[field] !== 'boolean') throw new Error('Invalid task state');
+    }
     seen.add(item.id);
+    if (item.due) {
+      const { day, at } = item.due;
+      if (typeof day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(day) || !Number.isFinite(Date.parse(day + 'T00:00:00Z')) ||
+          new Date(day + 'T00:00:00Z').toISOString().slice(0, 10) !== day ||
+          (at !== undefined && (typeof at !== 'string' || !/Z$/.test(at) || !Number.isFinite(Date.parse(at))))) {
+        throw new Error('Invalid reminder due date');
+      }
+    }
     if (item.completed || item.cancelled) continue;
     const task = { id: item.id, content: item.title, section: 'pf1007l-test', version: item.version,
-      due: item.due?.day, canComplete: !snapshot.stale && !item.recurring,
+      due: item.due?.day, canComplete: snapshot.stale === false && !item.recurring && item.canComplete !== false,
       note: item.recurring ? 'Recurring · complete on iPhone' : null };
     tasks.push(task);
     if (item.due) {

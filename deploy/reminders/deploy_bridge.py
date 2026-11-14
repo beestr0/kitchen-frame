@@ -55,7 +55,14 @@ def execute(stage):
         settings = {'apiKey': secrets.token_hex(32), 'session': secrets.token_hex(32), 'csrf': secrets.token_hex(32), 'frameIP': clients[0]}
         settings_file.write_text(json.dumps(settings)); settings_file.chmod(0o600)
     (etc / 'proxy-key').write_text(settings['apiKey']); (etc / 'proxy-key').chmod(0o600)
-    shutil.copyfile(stage / 'task_bridge.py', root / 'task_bridge.py'); (root / 'task_bridge.py').chmod(0o644)
+    # Install imports before their consumer. Preserve legacy auth unless a separate
+    # owner-reviewed enrollment explicitly changes settings and credentials.
+    if settings.get('authMode', 'legacy-demo') != 'legacy-demo':
+        raise RuntimeError('Device-auth upgrades require the separately reviewed activation procedure')
+    for name in ('device_auth.py', 'task_bridge.py'):
+        if name not in manifest['files']:
+            raise RuntimeError('Bridge dependency missing from reviewed manifest')
+        shutil.copyfile(stage / name, root / name); (root / name).chmod(0o644)
     ui = root / 'ui'; ui.mkdir(mode=0o755, exist_ok=True); ui.chmod(0o755)
     with tarfile.open(stage / 'reminders-ui.tar.gz') as archive:
         for member in archive.getmembers():

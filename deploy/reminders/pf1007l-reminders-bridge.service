@@ -1,7 +1,9 @@
 [Unit]
 Description=PF1007L disposable collection dashboard bridge
-After=pf1007l-reminders-demo.service
-Requires=pf1007l-reminders-demo.service
+After=network.target pf1007l-reminders-demo.service
+Wants=pf1007l-reminders-demo.service
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Service]
 DynamicUser=yes
@@ -13,6 +15,7 @@ StateDirectoryMode=0700
 UMask=0077
 NoNewPrivileges=yes
 PrivateTmp=yes
+PrivateDevices=yes
 ProtectSystem=strict
 ProtectHome=yes
 ProtectKernelTunables=yes
@@ -29,6 +32,7 @@ CPUQuota=25%
 TasksMax=24
 Restart=on-failure
 RestartSec=5
+TimeoutStopSec=15
 
 [Install]
 WantedBy=multi-user.target

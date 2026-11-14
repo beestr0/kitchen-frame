@@ -8,6 +8,7 @@ import { resolveTheme } from './theme.js';
 import { focus } from './focus.svelte.js';
 import { remaining } from './focus.js';
 import { projectReminders } from './reminders.js';
+import { createDeviceSession } from './device-session.js';
 export const remindersPilot = import.meta.env.VITE_REMINDERS_PILOT === true;
 
 const MIN = 60 * 1000;
@@ -46,7 +47,8 @@ export function setSetting(key, value) {
   if (key === 'demo') {
     ui.demo = value;
     localStorage.setItem('frame-demo', value ? 'on' : 'off');
-    lists.groceries.items = lists.todo.items = null; // demo lists are rebuilt fresh each time it's switched on
+    lists.groceries.items = null;
+    if (!remindersPilot) lists.todo.items = null; // never discard the last-good task copy on a display toggle
     forget('calendar', 'photos', 'todo', 'groceries', 'todo-meta', 'groceries-meta'); // real data must redraw
     loadCalendar(); loadList('todo'); loadList('groceries'); loadPhotos();
   }
@@ -55,22 +57,29 @@ export const clock = $state({ now: new Date() });
 // In demo mode nothing real is shown at boot, even briefly, and nothing demo is cached as real.
 export const calendar = $state({ data: ui.demo ? demoCalendar(new Date()) : cached('calendar'), offline: false });
 export const reminders = $state({ events: [], stale: true, error: null, lastSuccess: null });
-let pilotCSRF;
 export function calendarEvents() {
   const events = calendar.data?.events || [];
   return remindersPilot ? [...events, ...reminders.events].sort((a, b) => a.start.localeCompare(b.start)) : events;
 }
 async function pilotRequest(route, init = {}) {
-  const response = await fetch('/__reminders-demo/' + route, { cache: 'no-store', credentials: 'same-origin', ...init });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.error || 'Demo reminders unavailable');
-  return body;
+  const controller = new AbortController();
+  const deadline = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch('/__reminders-demo/' + route, { cache: 'no-store', credentials: 'same-origin', ...init, signal: controller.signal });
+    const body = await response.json();
+    if (!response.ok) {
+      const error = new Error(body.error || 'Demo reminders unavailable');
+      Object.assign(error, { status: response.status, code: body.code, mode: body.mode });
+      throw error;
+    }
+    return body;
+  } finally { clearTimeout(deadline); }
 }
+const pilotSession = createDeviceSession({ request: pilotRequest });
 export function loadReminders() {
   return single('demo-reminders', async () => {
     try {
-      if (!pilotCSRF) pilotCSRF = (await pilotRequest('session')).csrf;
-      const snapshot = await pilotRequest('snapshot');
+      const snapshot = await pilotSession.request('snapshot');
       const projection = projectReminders(snapshot);
       // Never persist task data or provider/session credentials in localStorage.
       if (JSON.stringify(lists.todo.items) !== JSON.stringify(projection.tasks)) lists.todo.items = projection.tasks;
@@ -275,7 +284,7 @@ export async function completeItem(name, item) {
     if (!item.canComplete || reminders.stale) return;
     try {
       const operation = 'frame-' + crypto.getRandomValues(new Uint32Array(4)).join('-');
-      await pilotRequest('complete', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Pilot-CSRF': pilotCSRF },
+      await pilotSession.request('complete', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: item.id, version: item.version, operation }) });
       // A poll started before the write may still be completing. Wait for it,
       // then issue a fresh read so its older copy cannot resurrect the row.
@@ -336,6 +345,10 @@ function applyTheme() {
 
 export function start() {
   if (remindersPilot) every(30000, loadReminders, () => !ui.idle && ['home', 'todo', 'calendar'].includes(ui.tab));
+  if (remindersPilot) {
+    addEventListener('online', loadReminders);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) loadReminders(); });
+  }
   // Clock aligned to the minute boundary.
   (function tick() {
     clock.now = new Date();

@@ -17,11 +17,12 @@ CACHE=KIOSK/'deps-lan-tls'
 NS={'m':'http://maven.apache.org/POM/4.0.0'}
 
 
-def fetch(group,artifact,version,extension):
+def fetch(group,artifact,version,extension,offline=False):
     base='https://dl.google.com/dl/android/maven2/' if group.startswith('androidx.') else 'https://repo.maven.apache.org/maven2/'
     relative=group.replace('.','/')+'/'+artifact+'/'+version+'/'+artifact+'-'+version+'.'+extension
     path=CACHE/relative
     if not path.exists():
+        if offline: raise RuntimeError('Retained dependency missing; offline candidate build did not download anything')
         path.parent.mkdir(parents=True,exist_ok=True)
         with urllib.request.urlopen(base+relative,timeout=30) as response:data=response.read()
         path.write_bytes(data)
@@ -31,17 +32,18 @@ def fetch(group,artifact,version,extension):
 def version_key(value):return tuple(int(v) for v in re.findall(r'\d+',value))
 
 
-def main():
-    OUT.mkdir(parents=True,exist_ok=True);CACHE.mkdir(exist_ok=True)
+def main(output=None, offline=False):
+    out=Path(output) if output is not None else OUT
+    out.mkdir(parents=True,exist_ok=True);CACHE.mkdir(exist_ok=True)
     queue=deque([('androidx.webkit','webkit','1.14.0')]);selected={}
     while queue:
         group,artifact,version=queue.popleft();key=(group,artifact)
         version=version.strip('[]')
         if key in selected and version_key(selected[key]['version'])>=version_key(version):continue
-        pom,_=fetch(group,artifact,version,'pom');tree=ET.fromstring(pom.read_bytes())
+        pom,_=fetch(group,artifact,version,'pom',offline);tree=ET.fromstring(pom.read_bytes())
         properties={item.tag.split('}')[-1]:item.text for item in tree.findall('m:properties/*',NS)}
         packaging=tree.findtext('m:packaging','jar',NS)
-        data,url=fetch(group,artifact,version,packaging)
+        data,url=fetch(group,artifact,version,packaging,offline)
         selected[key]={'group':group,'artifact':artifact,'version':version,'path':str(data),'type':packaging,'url':url,'sha256':hashlib.sha256(data.read_bytes()).hexdigest()}
         for dep in tree.findall('m:dependencies/m:dependency',NS):
             if dep.findtext('m:scope','compile',NS) not in ['compile','runtime'] or dep.findtext('m:optional','false',NS)=='true':continue
@@ -54,7 +56,7 @@ def main():
     for item in selected.values():
         path=Path(item['path'])
         if item['type']=='aar':
-            unpack=OUT/'libraries'/(item['group']+'.'+item['artifact'])
+            unpack=out/'libraries'/(item['group']+'.'+item['artifact'])
             unpack.mkdir(parents=True,exist_ok=True)
             with zipfile.ZipFile(path) as z:z.extractall(unpack)
             manifest=ET.parse(unpack/'AndroidManifest.xml').getroot()
@@ -65,11 +67,17 @@ def main():
             if (unpack/'res').exists():resources.append(str(unpack/'res'))
             if manifest.attrib.get('package'):packages.append(manifest.attrib['package'])
         else:jars.append(str(path))
-    source=OUT/'src';source.mkdir(exist_ok=True)
+    source=out/'src';source.mkdir(exist_ok=True)
     for original in (KIOSK/'src').rglob('*.java'):
         target=source/original.relative_to(KIOSK/'src');target.parent.mkdir(parents=True,exist_ok=True)
         text=original.read_text()
         if original.name=='MainActivity.java':
+            text=text.replace('    setContentView(web);', '''    setContentView(web);
+    setDeviceAuthAvailable(DeviceAuthController.isSupported());
+    if (deviceAuthEnabled() && !DeviceAuthController.attach(this, web)) {
+      web.loadData("<body>Device authentication is unsupported by this WebView. No security fallback was enabled.</body>", "text/html", "utf-8");
+      return;
+    }''')
             anchor='    if (url != null) { web.loadUrl(url); handler.postDelayed(watchdog, WATCHDOG_MS); }'
             end='        + "com.huntsyea.frame/.MainActivity -d &lt;url&gt;</code></body>", "text/html", "utf-8");'
             start=text.index(anchor);stop=text.index(end,start)+len(end)
@@ -77,10 +85,11 @@ def main():
             text=text[:start]+'    LanTlsProxy.install(this, () -> {\n'+startup+'\n    });'+text[stop:]
         target.write_text(text)
     shutil.copy2(HERE/'LanTlsProxy.java',source/'com/huntsyea/frame/LanTlsProxy.java')
+    shutil.copy2(HERE/'DeviceAuthController.java',source/'com/huntsyea/frame/DeviceAuthController.java')
     manifest=(KIOSK/'AndroidManifest.xml').read_text()
     manifest=re.sub(r'^.*<category android:name="android.intent.category.HOME".*\n','',manifest,flags=re.M)
-    (OUT/'AndroidManifest.xml').write_text(manifest)
-    (OUT/'dependencies.json').write_text(json.dumps({'jars':jars,'resources':resources,'packages':packages},indent=2))
+    (out/'AndroidManifest.xml').write_text(manifest)
+    (out/'dependencies.json').write_text(json.dumps({'jars':jars,'resources':resources,'packages':packages},indent=2))
     (KIOSK/'lan-tls/dependencies.lock.json').write_text(json.dumps([{k:v for k,v in item.items() if k!='path'} for item in selected.values()],indent=2))
     print('Prepared independent test build with',len(jars),'official libraries; original APK preserved; configuration is not changed by building.')
 

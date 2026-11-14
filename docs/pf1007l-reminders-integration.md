@@ -36,8 +36,10 @@ partial-result last-good retention and authoritative empty results.
 
 Ignored physical evidence is under `diagnostics/pf1007l/reminders/`; it contains
 only demonstration data. No Apple credentials, raw personal calendars or iCloud
-Reminders were accessed. Prior preparation changes remain uncommitted on the same
-feature branch; no PR, merge or cloud deployment occurred.
+Reminders were accessed. This working demonstration was checkpointed at `3a74a35`
+on the feature branch; no PR, merge or cloud deployment occurred. The later
+[device-auth candidate](pf1007l-device-auth.md) is prepared in source and isolated
+tests only; the running integration still uses this demonstration configuration.
 
 ## Current URLs, services and isolation
 

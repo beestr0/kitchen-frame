@@ -11,14 +11,16 @@ export function remindersDemoHandler(config, secure) {
   if (token.length < 40) throw Error('Demo bridge credential required');
   return (req, res, url) => {
     if (!url.pathname.startsWith(prefix)) return false;
+    // Protected kiosk pages never need child frames, plugins or embedded documents.
+    res.setHeader('Content-Security-Policy', String(res.getHeader('Content-Security-Policy') || "default-src 'self'") + "; frame-src 'none'; object-src 'none'");
     const route = url.pathname.slice(prefix.length);
     const reply = (status, value) => {
       res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
       res.end(JSON.stringify(value));
     };
     if (url.search) { reply(400, { error: 'Demo query strings unavailable' }); return true; }
-    if (['session', 'snapshot', 'complete'].includes(route)) {
-      if ((route === 'complete' ? req.method !== 'POST' : req.method !== 'GET')) {
+    if (['session', 'snapshot', 'complete', 'device/challenge', 'device/prove'].includes(route)) {
+      if ((['complete', 'device/challenge', 'device/prove'].includes(route) ? req.method !== 'POST' : req.method !== 'GET')) {
         reply(405, { error: 'Method unavailable' }); return true;
       }
       let size = 0;

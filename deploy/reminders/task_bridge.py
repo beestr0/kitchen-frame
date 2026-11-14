@@ -12,6 +12,7 @@ import re
 import sqlite3
 import threading
 import time
+import random
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -19,6 +20,7 @@ from zoneinfo import ZoneInfo
 
 import vobject
 from dateutil.tz import tzutc
+from device_auth import DeviceAuth, AuthError
 
 COLLECTION = '/pf1007l-demo/pf1007l-test/'
 ORIGIN = 'https://beestr0.duckdns.org:8789'
@@ -28,8 +30,23 @@ QUERY = b'''<C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:cal
 
 
 class TaskError(Exception):
-    def __init__(self, status, message):
-        self.status, self.message = status, message
+    def __init__(self, status, message, code='backend_unavailable', retry_after=0):
+        self.status, self.message, self.code, self.retry_after = status, message, code, retry_after
+
+
+def task_path(path, collection=False):
+    if not isinstance(path, str) or len(path) > 1024:
+        raise TaskError(403, 'Task route denied')
+    try:
+        decoded = urllib.parse.unquote(path, errors='strict')
+    except (ValueError, UnicodeError):
+        raise TaskError(403, 'Task route denied') from None
+    if collection and path == COLLECTION:
+        return path
+    child = decoded[len(COLLECTION):] if decoded.startswith(COLLECTION) else ''
+    if not child or not child.endswith('.ics') or any(c in child for c in '/\\%?#') or any(ord(c) < 32 for c in decoded) or path.startswith('//'):
+        raise TaskError(403, 'Task route denied')
+    return path
 
 
 def due_value(value):
@@ -53,11 +70,14 @@ def parse_task(text):
     tasks = root.contents.get('vtodo', [])
     if root.name != 'VCALENDAR' or not tasks or root.contents.get('vevent'):
         raise TaskError(503, 'Invalid VTODO resource')
+    uids = [str(x.uid.value) if hasattr(x, 'uid') else '' for x in tasks]
+    if len(tasks) > 100 or len(set(uids)) != 1 or not uids[0] or sum('recurrence-id' not in x.contents for x in tasks) > 1:
+        raise TaskError(503, 'Ambiguous VTODO resource', 'invalid_snapshot')
     # Preserve resources with recurrence exceptions, but don't guess instance writes.
     task = next((x for x in tasks if 'recurrence-id' not in x.contents), tasks[0])
     if not hasattr(task, 'uid') or not str(task.uid.value):
         raise TaskError(503, 'Reminder identity missing')
-    recurring = len(tasks) > 1 or any(k in task.contents for k in ('rrule', 'rdate', 'recurrence-id'))
+    recurring = len(tasks) > 1 or any(k in task.contents for k in ('rrule', 'rdate', 'recurrence-id', 'exdate', 'exrule'))
     status = str(task.status.value).upper() if hasattr(task, 'status') else 'NEEDS-ACTION'
     return root, task, {'title': str(task.summary.value)[:500] if hasattr(task, 'summary') else '(Untitled reminder)',
                         'due': due_value(task.due.value) if hasattr(task, 'due') else None,
@@ -66,18 +86,30 @@ def parse_task(text):
 
 
 class Bridge:
-    def __init__(self, account, settings, database):
+    def __init__(self, account, settings, database, device_registry=None, clock=time.monotonic, jitter=random.uniform):
         if account.get('username') != 'pf1007l-demo':
             raise RuntimeError('Dedicated demo account required')
         self.account, self.settings = account, settings
-        self.db = sqlite3.connect(database, check_same_thread=False)
+        if str(database) != ':memory:' and Path(database).is_symlink():
+            raise RuntimeError('Task state must not be a symlink')
+        self.db = sqlite3.connect(database, check_same_thread=False, timeout=5)
+        self.db.execute('PRAGMA synchronous=FULL')
+        if str(database) != ':memory:': Path(database).chmod(0o600)
         self.db.execute('CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT NOT NULL)')
         self.db.execute('CREATE TABLE IF NOT EXISTS operations (key TEXT PRIMARY KEY, task TEXT, version TEXT, result TEXT)')
         self.db.commit()
         self.lock = threading.RLock()
         self.attempt = 0
+        self.next_attempt = 0
+        self.failures = 0
+        self.last_error = None
+        self.clock, self.jitter = clock, jitter
         self.auth_failed = False
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
+        self.auth_mode = settings.get('authMode', 'legacy-demo')
+        if self.auth_mode not in ('legacy-demo', 'device-v1'):
+            raise ValueError('Unknown authentication mode; refusing fallback')
+        self.device_auth = DeviceAuth(self.db, device_registry, ORIGIN, settings['csrf']) if self.auth_mode == 'device-v1' else None
 
     def load(self, key, default=None):
         row = self.db.execute('SELECT value FROM state WHERE key=?', (key,)).fetchone()
@@ -88,10 +120,19 @@ class Bridge:
         self.db.commit()
 
     def opaque(self, value):
-        return hmac.new(self.settings['apiKey'].encode(), value.encode(), hashlib.sha256).hexdigest()
+        return hmac.new(self.settings.get('identityKey', self.settings['apiKey']).encode(), value.encode(), hashlib.sha256).hexdigest()
+
+    def publish(self, snapshot, resources):
+        # Both revisions and display state commit together, including across crashes.
+        with self.db:
+            self.db.execute('INSERT OR REPLACE INTO state VALUES (?,?)', ('resources', json.dumps(resources)))
+            self.db.execute('INSERT OR REPLACE INTO state VALUES (?,?)', ('snapshot', json.dumps(snapshot)))
 
     def dav(self, method, path, body=None, etag=None):
-        if method not in ('REPORT', 'GET', 'PUT') or not path.startswith(COLLECTION) or '?' in path or '#' in path or '\\' in path or '..' in path or '//' in path:
+        if method not in ('REPORT', 'GET', 'PUT'):
+            raise TaskError(403, 'Task route denied')
+        task_path(path, collection=method == 'REPORT')
+        if method == 'REPORT' and path != COLLECTION:
             raise TaskError(403, 'Task route denied')
         auth = base64.b64encode((self.account['username'] + ':' + self.account['password']).encode()).decode()
         headers = {'Authorization': 'Basic ' + auth, 'Depth': '1' if method == 'REPORT' else '0',
@@ -102,15 +143,22 @@ class Bridge:
         request = urllib.request.Request('http://127.0.0.1:5238' + path, data=body, headers=headers, method=method)
         try:
             with self.opener.open(request, timeout=10) as response:
+                if response.status not in ({207} if method == 'REPORT' else {200} if method == 'GET' else {201, 204}):
+                    raise TaskError(503, 'Unexpected task service response', 'invalid_response')
                 data = response.read(2097153)
                 if len(data) > 2097152:
                     raise TaskError(503, 'Task response too large')
                 return response.status, response.headers, data
         except urllib.error.HTTPError as error:
-            code = error.code; error.close()
+            code = error.code
+            delay = error.headers.get('Retry-After', '')
+            retry = min(int(delay), 3600) if delay.isdigit() else 0
+            error.close()
             if code in (401, 403):
                 self.auth_failed = True
-            raise TaskError(409 if code == 412 else 503, 'Task changed; refresh before retrying' if code == 412 else 'Task service unavailable') from None
+            raise TaskError(409 if code in (404, 410, 412) else 503,
+                            'Task changed or was removed; refresh before retrying' if code in (404, 410, 412) else 'Task service unavailable',
+                            'conflict' if code in (404, 410, 412) else 'authorization_required' if code in (401, 403) else 'rate_limited' if code == 429 else 'backend_unavailable', retry) from None
         except (urllib.error.URLError, OSError):
             raise TaskError(503, 'Task service unavailable') from None
 
@@ -118,14 +166,14 @@ class Bridge:
         cached = self.load('snapshot', {'items': [], 'lastSuccess': None, 'stale': True})
         if self.auth_failed:
             return {**cached, 'stale': True, 'error': 'Demo account authorization needs attention'}
-        if not force and time.monotonic() - self.attempt < 15:
+        if not force and self.clock() < self.next_attempt:
             return cached
-        self.attempt = time.monotonic()
+        self.attempt = self.clock()
         try:
             _, _, data = self.dav('REPORT', COLLECTION, QUERY)
-            if b'<!DOCTYPE' in data.upper() or b'<!ENTITY' in data.upper():
+            if b'\0' in data or b'<!DOCTYPE' in data.upper() or b'<!ENTITY' in data.upper():
                 raise TaskError(503, 'Invalid task response')
-            root = ET.fromstring(data)
+            root = ET.fromstring(data.decode('utf-8-sig'))
             if root.tag != '{DAV:}multistatus':
                 raise TaskError(503, 'Invalid task response')
             items, resources, seen = [], {}, set()
@@ -140,6 +188,7 @@ class Bridge:
                 text, etag = props.get('{urn:ietf:params:xml:ns:caldav}calendar-data'), props.get('{DAV:}getetag')
                 if not href.startswith(COLLECTION) or not href.endswith('.ics') or text is None or not etag:
                     raise TaskError(503, 'Incomplete task response')
+                task_path(href)
                 _, task, item = parse_task(text)
                 uid = str(task.uid.value)
                 identifier = self.opaque(COLLECTION + '\0' + uid)
@@ -155,11 +204,17 @@ class Bridge:
             snapshot = {'items': items, 'lastSuccess': datetime.now(timezone.utc).isoformat(), 'stale': False,
                         'list': 'PF1007L Test', 'timezone': str(ZONE)}
             # All-or-nothing publication: a failed collection read never deletes items.
-            self.save('resources', resources)
-            self.save('snapshot', snapshot)
+            self.publish(snapshot, resources)
+            self.failures, self.last_error, self.next_attempt = 0, None, self.clock() + 15
             return snapshot
-        except Exception:
-            stale = {**cached, 'stale': True, 'error': 'Could not refresh demo reminders; last good data retained'}
+        except Exception as error:
+            self.failures += 1
+            self.last_error = error.code if isinstance(error, TaskError) else 'invalid_snapshot'
+            interval = min(300, 15 * 2 ** min(self.failures - 1, 5))
+            interval = max(interval * self.jitter(0.8, 1.2), getattr(error, 'retry_after', 0))
+            self.next_attempt = self.clock() + interval
+            stale = {**cached, 'stale': True, 'error': 'Could not refresh demo reminders; last good data retained',
+                     'diagnostics': {'code': self.last_error, 'failures': self.failures, 'retrySeconds': int(interval)}}
             self.save('snapshot', stale)
             return stale
 
@@ -172,7 +227,7 @@ class Bridge:
         if prior and prior[2] == 'done':
             return {'completed': True}
         resource = self.load('resources', {}).get(identifier)
-        if not resource or resource['version'] != version:
+        if not resource or (resource['version'] != version and not prior):
             raise TaskError(409, 'Task changed; refresh before retrying')
         _, headers, data = self.dav('GET', resource['href'])
         root, task, item = parse_task(data.decode())
@@ -181,7 +236,8 @@ class Bridge:
         if item['completed']:
             self.db.execute('INSERT OR REPLACE INTO operations VALUES (?,?,?,?)', (key, identifier, version, 'done')); self.db.commit()
             return {'completed': True}
-        if headers.get('ETag') != resource['etag']:
+        current_etag = headers.get('ETag')
+        if not current_etag or current_etag.startswith('W/') or self.opaque(current_etag) != version:
             raise TaskError(409, 'Task changed; refresh before retrying')
         self.db.execute('INSERT OR IGNORE INTO operations VALUES (?,?,?,?)', (key, identifier, version, 'pending')); self.db.commit()
         # vobject's serializer recognizes its dateutil UTC singleton; stdlib UTC
@@ -210,13 +266,15 @@ def handler(bridge):
         def log_message(self, *args):
             pass
 
-        def response(self, code, value, cookie=False):
+        def response(self, code, value, cookie=False, set_cookie=None):
             data = json.dumps(value).encode()
             self.send_response(code)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Cache-Control', 'no-store')
             self.send_header('Content-Length', str(len(data)))
-            if cookie:
+            if set_cookie:
+                self.send_header('Set-Cookie', set_cookie)
+            elif cookie:
                 self.send_header('Set-Cookie', 'pf1007l-demo=' + bridge.settings['session'] + '; Path=' + PREFIX + '; Secure; HttpOnly; SameSite=Strict; Max-Age=86400')
             self.end_headers(); self.wfile.write(data)
 
@@ -227,19 +285,47 @@ def handler(bridge):
                 raise TaskError(403, 'Demo frame access denied')
             if self.headers.get('Origin') not in (None, ORIGIN):
                 raise TaskError(403, 'Origin denied')
-            authenticated = ('pf1007l-demo=' + bridge.settings['session']) in self.headers.get('Cookie', '').split('; ')
             route = self.path
-            if route == PREFIX + 'session' and self.command == 'GET':
+            session = None
+            if bridge.device_auth:
+                if route in (PREFIX + 'device/challenge', PREFIX + 'device/prove') and self.command == 'POST':
+                    if self.headers.get('Origin') != ORIGIN:
+                        raise TaskError(403, 'Origin denied')
+                    if self.headers.get('Content-Type') != 'application/json':
+                        raise TaskError(415, 'JSON required')
+                    try:
+                        length = int(self.headers.get('Content-Length', '0'))
+                    except ValueError:
+                        raise TaskError(400, 'Invalid request size') from None
+                    if not 0 < length <= 2048:
+                        raise TaskError(413, 'Device proof body limit')
+                    try:
+                        value = json.loads(self.rfile.read(length))
+                        if not isinstance(value, dict): raise ValueError()
+                    except (ValueError, UnicodeError):
+                        raise TaskError(400, 'Invalid device request') from None
+                    if route.endswith('/challenge'):
+                        self.response(200, bridge.device_auth.challenge(value.get('device')))
+                    else:
+                        token, session = bridge.device_auth.prove(value.get('device'), value.get('challenge'), value.get('signature'))
+                        self.response(200, session, set_cookie=bridge.device_auth.cookie(token))
+                    return
+                session = bridge.device_auth.authenticate(self.headers.get('Cookie', ''))
+                if route == PREFIX + 'session' and self.command == 'GET':
+                    self.response(200, session); return
+            authenticated = False if bridge.device_auth else ('pf1007l-demo=' + bridge.settings['session']) in self.headers.get('Cookie', '').split('; ')
+            if not bridge.device_auth and route == PREFIX + 'session' and self.command == 'GET':
                 if not authenticated and bridge.load('provisioned', False):
                     raise TaskError(403, 'Demo frame session needs local reprovisioning')
                 bridge.save('provisioned', True)
-                self.response(200, {'demo': True, 'csrf': bridge.settings['csrf']}, cookie=True); return
-            if not authenticated:
+                self.response(200, {'demo': True, 'mode': 'legacy-demo', 'expiresIn': 86400, 'csrf': bridge.settings['csrf']}, cookie=True); return
+            if not authenticated and session is None:
                 raise TaskError(401, 'Demo frame session required')
             if route == PREFIX + 'snapshot' and self.command == 'GET':
                 self.response(200, bridge.snapshot()); return
             if route == PREFIX + 'complete' and self.command == 'POST':
-                if self.headers.get('Origin') != ORIGIN or not hmac.compare_digest(self.headers.get('X-Pilot-CSRF', ''), bridge.settings['csrf']):
+                expected_csrf = session['csrf'] if session else bridge.settings['csrf']
+                if self.headers.get('Origin') != ORIGIN or not hmac.compare_digest(self.headers.get('X-Pilot-CSRF', ''), expected_csrf):
                     raise TaskError(403, 'Completion origin or token denied')
                 if self.headers.get('Content-Type') != 'application/json':
                     raise TaskError(415, 'JSON required')
@@ -257,6 +343,8 @@ def handler(bridge):
                     self.process()
             except TaskError as error:
                 self.response(error.status, {'error': error.message})
+            except AuthError as error:
+                self.response(error.status, {'error': 'Device authentication required', 'code': error.code, 'mode': 'device-v1'})
             except Exception:
                 self.response(503, {'error': 'Demo task operation unavailable'})
 
@@ -269,5 +357,6 @@ if __name__ == '__main__':
     account = json.loads((credentials / 'demo-account').read_text())
     settings = json.loads((credentials / 'bridge-settings').read_text())
     state = Path(os.environ['STATE_DIRECTORY'])
-    bridge = Bridge(account, settings, state / 'tasks.sqlite')
+    registry = json.loads((credentials / 'device-registry').read_text()) if settings.get('authMode') == 'device-v1' else None
+    bridge = Bridge(account, settings, state / 'tasks.sqlite', device_registry=registry)
     ThreadingHTTPServer(('127.0.0.1', 5240), handler(bridge)).serve_forever()

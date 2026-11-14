@@ -54,3 +54,23 @@ test('demo bridge projection keeps dated tasks in Tasks and the correct Calendar
   assert.equal(projectReminders({ items: [item], stale: true }).tasks[0].canComplete, false);
   assert.equal(projectReminders({ items: [{ ...item, completed: true }] }).tasks.length, 0);
 });
+
+test('malformed demo task states and dates never publish partial or misleading calendar data', () => {
+  const item = { id: 'a'.repeat(64), title: 'Invented task', version: 'v1', due: { day: '2026-11-14' } };
+  for (const invalid of [{ ...item, version: '' }, { ...item, completed: 'false' }, { ...item, recurring: 'false' },
+    { ...item, due: { day: '2026-02-30' } }, { ...item, due: { day: '2026-11-14', at: '2026-11-14T10:00:00' } }, null]) {
+    assert.throws(() => projectReminders({ items: [{ ...item, id: 'b'.repeat(64) }, invalid], stale: false }));
+  }
+});
+
+test('offline read-only projection recovers unchanged IDs and completion rights on fresh authoritative data', () => {
+  const item = { id: 'a'.repeat(64), title: 'Invented task', version: 'v1', due: { day: '2026-11-14' } };
+  const initial = projectReminders({ items: [item], stale: false });
+  const offline = projectReminders({ items: [item], stale: true });
+  assert.equal(offline.tasks[0].id, initial.tasks[0].id);
+  assert.equal(offline.tasks[0].canComplete, false); assert.equal(offline.events[0].task.canComplete, false);
+  assert.equal(projectReminders({ items: [item] }).tasks[0].canComplete, false);
+  assert.equal(projectReminders({ items: [{ ...item, canComplete: false }], stale: false }).tasks[0].canComplete, false);
+  assert.equal(projectReminders({ items: [item], stale: false }).tasks[0].canComplete, true);
+  assert.equal(projectReminders({ items: [{ ...item, completed: true }], stale: false }).tasks.length, 0);
+});

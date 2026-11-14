@@ -1,9 +1,35 @@
 # PF1007L — next session
 
-Checkpoint: November 14, 2026, after the native Reminders demonstration and checkpoint validation.
-Branch: `feat/pf1007l-https-weather-handoff`. Checkpoint commit subject:
-`Checkpoint verified PF1007L Reminders demo and persistent SSH`. No PR/merge requested.
+Checkpoint: November 14, 2026, autonomous authentication/reliability development.
+Branch: `feat/pf1007l-https-weather-handoff`. Source checkpoint subject:
+`Prepare renewable device authentication and resilient demo synchronization`.
 Identify its exact commit with `git log -1 --oneline -- docs/NEXT_SESSION.md`.
+**Running deployment remains `3a74a35`; this candidate is not activated.** No PR/merge.
+
+## Autonomous session result — read this before deployment
+
+- Prepared opt-in P-256 device proof, owner-managed revocable public-key registry,
+  15-minute server-enforced sessions, proactive native renewal, per-session CSRF,
+  hash-only session storage, rate limits and no IP/legacy fallback in device mode.
+- Added origin-aware native WebView channel, fixed-audience TLS transport,
+  restricted navigation/resources and physical enrollment/rollback controls. Built
+  and signature-verified the candidate APK without installing over the working app.
+- Actual separate-UID probe on the frame: API23, signing + Linux verification,
+  identity persistence across launches, wrong-audience rejection, validated native
+  HTTPS and WEB_MESSAGE_LISTENER support all passed. **hardwareBacked=false**:
+  owner must review software-backed Keystore/unsupported-OS risk before enrollment.
+- Added atomic snapshot/revision publication, bounded outage backoff/jitter,
+  Retry-After, private SQLite state, pending-write reconciliation across polls and
+  restarts, stricter DAV paths and recurrence/ambiguous-resource gates. Candidate
+  bridge unit keeps stale-cache service alive when Radicale stops; unit syntax passed.
+- No noninteractive sudo authorization remained. Per the absence instructions,
+  privileged deployment was skipped. No live credentials read/reset, no live task writes,
+  no services restarted, no phone/default-list/iCloud changes and no new Serve mapping.
+- Read [device-auth design, acceptance and exact staged resume steps](pf1007l-device-auth.md)
+  before changing anything. Remaining gates: owner review + scoped sudo, controlled
+  candidate deployment and physical cookie/renewal/revocation tests, cellular phone
+  tests, real recurrence semantics, soak/restore and a separately approved reboot.
+
 
 ## Exact resume procedure
 
@@ -11,8 +37,9 @@ Identify its exact commit with `git log -1 --oneline -- docs/NEXT_SESSION.md`.
    feature branch and preserve any later local work. The checkpoint is pushed only
    to the existing `origin` fork (`beestr0/kitchen-frame`), not merged to main.
 2. Read this handoff and [hardening priorities](pf1007l-reminders-hardening.md).
-   **Next implementation: native device enrollment and renewable, revocable sessions**,
-   demonstration-only, replacing the temporary cookie dependency. Do not start
+   **Next step: review and activate the tested device-auth candidate in controlled
+   demo acceptance**, following [the activation runbook](pf1007l-device-auth.md).
+   Software-backed key acceptance and fresh scoped sudo are required. Do not start
    another provider or migrate any personal task list.
 3. Use `ssh -o BatchMode=yes pf1007l-mint` for read-only health checks:
 
@@ -33,7 +60,16 @@ Identify its exact commit with `git log -1 --oneline -- docs/NEXT_SESSION.md`.
    suite: `npm test` and `npx vite build --config vite.config.reminders.js` in
    `dashboard/`; Python unittest discovery in `deploy/lan-proxy/tests`, `deploy/ssh`,
    and `deploy/reminders` (bridge fixtures need the installed vobject runtime on Mint).
+   Also run `node --test scripts/reminders-demo-proxy.test.mjs` from the repo root.
    Physical evidence remains ignored; no task data/credentials belong in commits.
+   Candidate fixture sources (not a service) are staged privately at
+   `/home/hub/pf1007l-autonomous-tests.xc2ZzG`. Run the full Reminders fixture suite
+   there using `/opt/pf1007l-reminders-demo/venv/bin/python -m unittest discover -v`.
+   Build the offline APK with `python3 kiosk/lan-tls/build.py --auth-candidate`;
+   output `kiosk/build-auth-candidate/frame-auth-candidate.apk` is ignored and is
+   **not** the APK currently installed on the working kiosk. A disposable capability
+   probe remains installed as `com.huntsyea.frame.authprobe`; it is not enrolled and
+   has a separate key/application UID. It finishes back to the working kiosk.
 
 ## Current result — verified demo loop
 
@@ -99,24 +135,50 @@ shows stale rows; no silent browser write queue.
 Cookie/CSRF/origin/backend-key and wrong-frame denial passed. Initial one-time
 session provisioning still trusts the allowed source IP; it is demo-only, not
 cryptographic hardware identity. Cookie lifetime is 24 hours; expiry can require
-local reprovisioning. Stronger native/device/session security remains a gate before
-personal reminders. Recurring task completion is blocked on frame pending real
-occurrence-semantics tests; complete recurring reminders on iPhone for now.
+local reprovisioning. The replacement is prepared/tested in source but not activated;
+physical acceptance remains a gate before personal reminders. Recurring task
+completion is blocked on frame pending real occurrence-semantics tests; complete recurring reminders on iPhone for now.
 
 ## Validation and remaining work
 
-- Checkpoint rerun: **118 tests passed** (50 dashboard, 48 proxy/TLS, 5 bridge,
+- Autonomous source checkpoint: **180 tests passed** — 62 dashboard, 48 proxy/TLS,
+  5 demo-proxy routing tests, 52 Reminders Python fixtures (5 original bridge,
+  15 device proof, 6 HTTP auth boundary, 6 registry, 18 recovery, 2 discovery),
+  3 SSH configuration and 10 inactive iCloud tests. Final strict-registry changes
+  also passed the relevant 21-test Mint rerun. Native URL policy: **21 cases passed**.
+  Ordinary desk/demo builds and candidate APK signature verification passed.
+- Isolated Mint cold/renewal HTTP auth exchanges: **0.295 / 0.265 seconds**,
+  fixture-process peak RSS about 30 MiB; this is not a long-term load measurement.
+  Real bridge/Radicale remained ~17/~23 MiB with zero service restarts. Units active
+  and enabled, dashboard health zero upstream errors, Jellyfin healthy; private
+  Serve validated TLS and unauthenticated collection PROPFIND returned 401.
+- Physical separate-UID browser probe: native HttpOnly cookie accepted/present,
+  hidden from JavaScript; origin-aware message/reply round trip passed and channel
+  absent on a different origin. These used invented cookies and in-memory pages,
+  not the live authentication flow. Probe is stopped; working kiosk is foreground.
+- Fresh live-demo FPS samples: **57.3–60.2 FPS**, no sampled gap over 50 ms, six
+  five-second Home/Tasks/Calendar/theme samples. Original light theme/Home view
+  restored, automatic preference unchanged; debugging and USB forwarding off.
+  This measures the unchanged deployment, **not** candidate runtime performance.
+- Current checkpoint secret checks: Gitleaks 8.30.1 staged diff **and entire staged
+  index** (260 files), with allow-comments ignored: zero findings. Supplemental
+  private-key/header/JWT and sensitive-artifact checks also passed. Build outputs,
+  runtime settings, credentials, databases and physical diagnostics are excluded.
+- Mac free space remained ~13 GiB; Mint ~846 GiB. Retained Android dependencies
+  were used offline; no large downloads or server/OS restart occurred.
+- Original deployment checkpoint rerun: **118 tests passed** (50 dashboard, 48 proxy/TLS, 5 bridge,
   2 redirect-origin, 3 SSH configuration and 10 inactive iCloud tests). Both demo
   and ordinary desk production builds passed. Read-only runtime inspection confirmed
   active services, startup enablement and private Serve; a full Linux reboot is
   still untested. Physical evidence is ignored under
-  `diagnostics/pf1007l/reminders/`.
-- Core deployed adapter/proxy/final demo UI hashes match this checkpoint's source
-  and build. Gitleaks 8.30.1 staged-diff and full staged-index scans found no secrets;
+  `diagnostics/pf1007l/reminders/` and `/private/tmp/pf1007l-*`.
+- At deployment checkpoint `3a74a35`, deployed adapter/proxy/final demo UI hashes
+  matched that source/build. The new candidate deliberately differs and is not
+  deployed. Its earlier staged-diff/full-index scans found no secrets;
   supplemental private-key/JWT/header and sensitive-artifact checks also passed.
   Reports stay ignored. Runtime passwords, bridge/session values, databases,
   private keys, SSH client files and diagnostic payloads are not committed.
-- Actual frame Home/Tasks/Calendar in both themes: **59.95–60.15 FPS**, no sampled
+- Original deployment-checkpoint frame Home/Tasks/Calendar: **59.95–60.15 FPS**, no sampled
   gaps over 50 ms. Task-only simulated 503 retained data/disabled completion and
   recovered. Live conflict returned 409 without overwriting an edit; adapter restart
   preserved IDs and session. A UI poll race was removed after an overly short
