@@ -1,7 +1,8 @@
-# Private iCloud Calendar candidate — implemented, not activated
+# Private iCloud Calendar — active on Mint
 
-No Apple account has been accessed. Do not collect credentials, discover metadata
-or fetch events until the owner approves the account method and selected scope.
+Owner authorized Option B and selected two calendars privately. Read-only sync and
+physical event/edit acceptance passed. Credentials remain root-private on Linux;
+do not repeat setup/discovery or overwrite configuration. Consult the live report.
 
 - `readonly_caldav.py`: existing read-only HTTPS discovery and bounded VEVENT reads,
   now rejecting failed/duplicate/incomplete multistatus resources before deletion.
@@ -11,14 +12,14 @@ or fetch events until the owner approves the account method and selected scope.
   and minimally projected. Uses the already installed proxy Node runtime. No browser
   parsing, Apple credential, network access or implicit setup in the normalizer.
 - `pf1007l-calendar.service` / `bridge-calendar.conf`: isolated DynamicUser collector
-  and optional credential-only task-bridge extension. Neither is installed/enabled.
+  and optional credential-only task-bridge extension. Both are installed; collector is enabled and running.
 - `authorize.py` / `prepare_credentials.py`: private native root-TTY credential and
   metadata selection helpers; never fetch events, write Apple data or start services.
-- `start_authorization.py`: checksum-pinned native SSH setup launcher, after approval.
+- `start_authorization.py`: checksum-pinned native SSH setup launcher, used privately after approval; no repeat entry needed.
 - `prepare_release.py`: non-overwriting credential-free candidate freeze; v3 is the
   tested bundle. No deployment, service restart or Apple request on preparation.
 
-Validation: `python3 -m unittest discover -s deploy/icloud-calendar/tests` (20 tests),
+Validation: `python3 -m unittest discover -s deploy/icloud-calendar/tests` (27 tests including activation/retry),
 `npm test` in dashboard (72 tests including parser/projection), and relevant bridge/
 relay tests. Full fixture pipeline passed on Mint with zero Apple requests.
 

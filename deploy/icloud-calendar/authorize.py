@@ -12,6 +12,7 @@ import secrets
 import stat
 import sys
 import tempfile
+import uuid
 from prepare_credentials import save,DIRECTORY
 from readonly_caldav import ReadonlyCalDAV
 
@@ -34,26 +35,47 @@ def choose(calendars,answer):
              'name':calendars[n]['name'],'color':calendars[n].get('color') or '#3478F6'} for i,n in enumerate(numbers)]
 
 
+def store_entry(directory, username, password, replace=False):
+    directory=Path(directory);path=directory/'apple.json'
+    if not replace or not path.exists():
+        save(directory,username,password);return
+    info=path.lstat();parent=directory.lstat()
+    if not stat.S_ISREG(info.st_mode) or info.st_uid!=os.geteuid() or stat.S_IMODE(info.st_mode)!=0o600 or not stat.S_ISDIR(parent.st_mode) or parent.st_uid!=os.geteuid() or stat.S_IMODE(parent.st_mode)!=0o700:
+        raise ValueError('Private credential permissions required')
+    staged=directory/('.retry-'+uuid.uuid4().hex)
+    save(staged,username,password)
+    try:
+        os.link(path,directory/('.mistyped-entry-'+uuid.uuid4().hex+'.json'),follow_symlinks=False)
+        os.replace(staged/'apple.json',path)
+    finally:
+        (staged/'apple.json').unlink(missing_ok=True);staged.rmdir()
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--approved-storage',action='store_true')
     parser.add_argument('--approved-discovery',action='store_true')
+    parser.add_argument('--replace-mistyped-credential',action='store_true')
     args=parser.parse_args()
     if not (args.approved_storage and args.approved_discovery and sys.platform=='linux' and os.geteuid()==0 and os.isatty(0) and os.isatty(2)):
         raise ValueError('Explicit approval and private Linux root Terminal required')
     os.umask(0o077)
-    if (DIRECTORY/'config.json').exists() or (DIRECTORY/'bridge-key').exists():
+    if not args.replace_mistyped_credential and ((DIRECTORY/'config.json').exists() or (DIRECTORY/'bridge-key').exists()):
         raise ValueError('Existing calendar setup preserved; review before any change')
     path=DIRECTORY/'apple.json'
-    if not path.exists():
-        username=getpass.getpass('Apple reader account email (hidden): ').strip()
+    if not path.exists() or args.replace_mistyped_credential:
+        username=getpass.getpass('Existing Apple Account email (hidden): ').strip()
         password=getpass.getpass('PF1007L Calendar app-specific password (hidden): ').strip()
-        save(DIRECTORY,username,password)
+        store_entry(DIRECTORY,username,password,args.replace_mistyped_credential)
     info=path.lstat();directory=DIRECTORY.lstat()
     if not stat.S_ISREG(info.st_mode) or info.st_uid!=0 or stat.S_IMODE(info.st_mode)!=0o600 or not stat.S_ISDIR(directory.st_mode) or stat.S_IMODE(directory.st_mode)!=0o700:
         raise ValueError('Private credential permissions required')
     account=json.loads(path.read_text())
-    calendars=ReadonlyCalDAV(account['username'],account['appPassword']).discover()
+    client=ReadonlyCalDAV(account['username'],account['appPassword'])
+    if args.replace_mistyped_credential and (DIRECTORY/'config.json').is_file() and (DIRECTORY/'bridge-key').is_file():
+        print('Selected scope saved privately. Corrected credential stored; existing calendar selection preserved. No service started.')
+        return
+    calendars=client.discover()
     print('Private calendar metadata below is for this Terminal only. No events fetched.')
     for i,c in enumerate(calendars):print(str(i+1)+'. '+''.join(ch if ch.isprintable() else ' ' for ch in c['name'])+'  '+(c.get('color') or 'default color'))
     selection=choose(calendars,input('Select calendar numbers separated by commas: '))

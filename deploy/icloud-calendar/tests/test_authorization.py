@@ -28,3 +28,25 @@ class AuthorizationTests(unittest.TestCase):
    self.assertEqual(p.stat().st_mode&0o777,0o600)
    with self.assertRaises(ValueError):write_new(p,'replace')
    self.assertEqual(p.read_text(),'invented')
+
+
+class RetryTests(unittest.TestCase):
+ def test_bad_reentry_does_not_touch_existing_credential(self):
+  from authorize import store_entry
+  from prepare_credentials import save
+  with tempfile.TemporaryDirectory() as directory:
+   path=Path(directory)/'private';save(path,'invented@example.invalid','abcd-efgh-ijkl-mnop')
+   original=(path/'apple.json').read_bytes()
+   with self.assertRaises(ValueError):store_entry(path,'invented@example.invalid','mistyped',True)
+   self.assertEqual((path/'apple.json').read_bytes(),original)
+ def test_explicit_retry_retains_old_entry_privately_and_preserves_selection(self):
+  from authorize import store_entry
+  from prepare_credentials import save
+  with tempfile.TemporaryDirectory() as directory:
+   path=Path(directory)/'private';save(path,'invented@example.invalid','abcd-efgh-ijkl-mnop');original=(path/'apple.json').read_bytes()
+   (path/'config.json').write_text('preserve selection')
+   store_entry(path,'corrected@example.invalid','qrst-uvwx-yzab-cdef',True)
+   self.assertEqual((path/'apple.json').stat().st_mode&0o777,0o600)
+   self.assertEqual((path/'config.json').read_text(),'preserve selection')
+   backups=list(path.glob('.mistyped-entry-*'));self.assertEqual(len(backups),1);self.assertEqual(backups[0].read_bytes(),original)
+   self.assertEqual(backups[0].stat().st_mode&0o777,0o600)

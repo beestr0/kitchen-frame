@@ -1,7 +1,15 @@
-# Private Apple Calendar — implemented candidate, account authorization pending
+# Private Apple Calendar — activated and physically verified
 
-November 14, 2026. **No Apple account accessed, credential collected, calendar
-selected, service installed, or physical frame changed.** The existing dashboard,
+November 14, 2026. Owner explicitly authorized Option B: existing Apple Account with
+a dedicated app-specific password. Calendar-only read operations, private metadata
+discovery, selected-event cache/display and automatic refresh are authorized.
+Owner completed private credential/selection setup after a mistyped-entry retry.
+After verified recovery, the collector is active/enabled: two calendars,109 events,
+fresh. Candidate bridge/proxy/UI is deployed and the physical page reloaded in
+place. Authenticated frame delivery and ~60 FPS Home sample passed. Owner confirmed
+familiar appointments in the requested views, new phone event arrival (~5 minutes),
+and edit propagation (~6 minutes). Apple credentials were not re-entered
+during recovery. The existing dashboard,
 Reminders/Siri/auth/weather/HTTPS deployment remains active. This is the primary
 feature; no further Reminders investigation or soak is a prerequisite.
 
@@ -56,7 +64,12 @@ Manifest SHA256:
 `b392c9f1babe4028ac7dd3a6ecca60693bc79a64f801d8f8dfc1b699b830c1ef`.
 Original failed candidate is retained separately; do not deploy v1.
 
-## Essential account choice — owner approval required before proceeding
+## Account choice — Option B approved
+
+Do not repeat reader-account troubleshooting: Apple repeatedly refused creation.
+The owner accepted existing-account credential scope and explicitly authorized
+read-only selected-calendar use. The alternatives below explain the recorded
+tradeoff; they are not another decision gate.
 
 **Preferred least privilege:** a separate Apple Account used only as a calendar
 reader. Privately invite that account to each calendar you own and want displayed,
@@ -140,7 +153,7 @@ never overwrite completion history with backup. No credential revocation, privat
 cache deletion or personal-account sharing changes occur automatically. Root-private
 calendar state can remain inactive for diagnosis until owner decides retention.
 
-## One short physical acceptance session after live deployment
+## Original consolidated acceptance checklist (core batch completed)
 
 1. Owner creates one uniquely named non-sensitive test event **in Apple Calendar**,
    today, in selected calendar A; waits for automatic refresh. Verify Home/Day/Week/
@@ -153,8 +166,53 @@ calendar state can remain inactive for diagnosis until owner decides retention.
 4. End Mac observation/turn Mac off and verify a later phone change still arrives
    through the Linux collector. Record this once; no prolonged soak is required.
 
-Actual Apple compatibility, live display, physical performance and these acceptance
-criteria remain unverified until account authorization and deployment. They are not
-claimed complete by offline fixture success. Dense secondly/minutely/hourly event
+Live Apple retrieval/display, the core event-and-edit batch and Home performance
+are now verified below. Optional live cancellation/extra recurrence and Mac-off
+steps were not performed and are not claimed. They do not block this accepted
+calendar deployment. Dense secondly/minutely/hourly event
 rules and extremely large collections fail closed with last-good/stale state; expand
 support only if actual selected-calendar data demonstrates a need.
+
+### Activation failure and narrowly scoped recovery
+
+The initial installer created the public code root0700 under umask077, causing
+CHDIR/200 before collector code ran. Its bounded automatic rollback restored the
+working demo; original backup remains under
+`/var/backups/pf1007l-calendar/activation-20261114T231606Z-0b2c3d0c/backup`.
+No private permissions are relaxed. Tested `start_activation.py --resume` verifies
+original baseline, frozen artifacts and installed files, corrects public code
+traversal to0755, clears only the new unit's start-limit state, and retries with
+existing credentials/selection. New native root authorization is needed because
+the failed helper exited. Do not repeat installation or calendar selection.
+
+## Live activation verification — November 14
+
+Recovery completed at Unix1794698460.7463107. Two selected calendars/109 events,
+stale=false; deployed bridge/proxy/collector hashes match frozen v3. Initial update
+23:20:47.494155Z advanced automatically to23:25:51.613033Z. All seven relevant
+services active; calendar enabled for boot, Serve tailnet-only unchanged.
+Actual frame: Calendar/session/tasks200,109/2/fresh; selected scope and colors valid,
+Reminders11 records/fresh, weather visible, auto/dark theme. No private calendar
+localStorage persistence found. No-cookie401, query400, POST405. Home rAF sample
+60.1559FPS,zero >50ms,maxgap16.624ms. Diagnostics only returned aggregates; no
+calendar names/titles/credentials/screenshots. WebView debugging off,USB forwarding
+removed. Native recovery session was subsequently finished after acceptance.
+Owner confirmed familiar data in the requested views, new check-event arrival
+after about5 minutes, and edited event arrival about6 minutes later. No precise
+phone action timestamps were collected; do not imply exact delivery latency.
+
+## Final acceptance and cleanup
+
+The user confirmed the single physical batch. Final status: two selected calendars,
+110 events, stale=false, update2026-11-14T23:46:01.290225Z; all seven services healthy,
+calendar enabled for boot. Session finish acknowledged Unix1794700179.1735399.
+No active privileged helper, USB forward or WebView debugging remains. Normal
+calendar refresh runs on Linux without Mac/native Terminal. No account identifier,
+password, private event title, cookie or runtime snapshot belongs in Git.
+
+Twenty-seven focused Calendar/setup/recovery tests passed after controller changes.
+Earlier candidate111 relevant checks/build and Linux fixture pipeline passed; no
+unchanged Reminders/cellular/session-lifetime tests were repeated. Secret scan and
+checkpoint cover source/tests/docs only; private backup and current event state
+stay on Linux. The view-only reader option remains unavailable to this owner;
+Option B is explicitly accepted and must not be reopened as a setup requirement.

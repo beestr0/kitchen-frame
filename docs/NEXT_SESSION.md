@@ -7,37 +7,63 @@ verified activation tooling, recovery tests and documentation. Use `git log -1`
 and the branch upstream to identify its final commit; no deployment is required
 to restore this source checkpoint. No production/personal migration is authorized.
 
-## Primary priority — authorize and activate implemented private Apple Calendar
+## Live Apple Calendar activated and physically accepted
 
-Read [the implementation/account/deployment runbook](pf1007l-calendar-integration.md).
-The collector, selected-calendar cache, reused Linux event parser, authenticated
-calendar GET route and Home/Month/Week/new Day integration are implemented/tested.
-**No Apple account accessed and nothing deployed yet.** Current real event views
-still await account choice, private credential entry, metadata selection and live
-activation. Do not restart unrelated work or repeat passed cellular/auth tests.
+Owner authorized Option B (existing Apple Account, dedicated app-specific password),
+calendar-only discovery, selected-event retrieval/cache/display and automatic Linux
+refresh. Secure native credential/selection setup completed. **Two calendars are
+selected; latest snapshot110 events, fresh.** No Apple write operations, unrelated iCloud
+access, Reminders migration or public exposure occurred.
 
-Verified: 72 dashboard tests, 20 Calendar tests, 6 proxy relay tests and 13 relevant
-Mint bridge tests; UI build and full assembled Linux collector→Node pipeline with
-invented events passed. No physical performance/live-Apple claim follows from this.
-Frozen candidate v3: `diagnostics/pf1007l/calendar-candidate-v3`; Mint review stage
-`/home/hub/pf1007l-calendar-candidate-v3-review`. Manifest SHA256
-`b392c9f1babe4028ac7dd3a6ecca60693bc79a64f801d8f8dfc1b699b830c1ef`.
-The v1 Node path failed isolated testing; preserve it for diagnosis, deploy only v3.
+Tested candidate from `5687b90` is now deployed: separate `pf1007l-calendar.service`
+active/enabled, collector/SQLite on Linux, existing device-authenticated calendar
+route, Home/Month/Week/new Day views. Existing dashboard/Reminders/auth/weather
+remain healthy; private Serve unchanged. Code hashes match frozen v3 manifest.
+Automatic refresh advanced from 23:20:47.494155Z to 23:25:51.613033Z without manual
+refresh. No Mac runtime dependency or APK replacement; only the page was reloaded.
 
-Essential next owner decision: dedicated privately shared view-only reader account
-(preferred) versus existing-account app password with broader scope. Approve private
-credential storage, metadata discovery and selected-event display before connection.
-Then the prepared `python3 deploy/icloud-calendar/start_authorization.py` runs only
-in native Terminal: hidden inputs, selected calendar list locally, no event fetch or
-service starts. Do not ask for account names/passwords/calendar metadata in chat.
-Deploy only after approved selected scope, private backups and preflight; batch
-physical checks once using the runbook. No Reminders migration or production task
-activation is authorized. Existing frame software/physical-access risk applies to
-displayed personal events; it must be included in account/display authorization.
+Actual frame checks: calendar/session/tasks200, private source109 events/2 calendars,
+fresh; colors valid and events restricted to selected calendars; no private event
+cache in localStorage; unauthorized calendar401, query400, write405. Reminders11
+records/fresh, weather visible. Home dark/auto sample **60.1559 FPS**, zero >50ms,
+max gap16.624ms. Debugging OFF and USB forwarding removed afterward. Do not capture
+personal screenshots/DOM/titles or return calendar names/account details to chat.
 
-Live core remains `8aade81`; recurrence and calendar changes are source-only.
-Cellular closure `64aa9bb`, recurrence preparation `ccaa37b`. Preserve current
-Reminders/device registry/settings/SQLite and original private backups.
+Owner completed the consolidated acceptance batch: familiar appointments in the
+requested Home/Day/Week/Month views confirmed; a check event created on iPhone
+appeared after approximately5 minutes and an edit appeared approximately6 minutes
+later. These are owner-reported approximate observations, not precise latency/SLA.
+No repeated physical tests are needed. No Apple event writes were issued by code.
+Automatic refresh is five-minute upstream plus up to one-minute frame polling.
+Final aggregate check:110 events/two calendars,stale=false,updated23:46:01.290225Z,
+all services healthy. The scoped root session was deliberately **finished** at
+Unix1794700179.1735399. WebView debugging OFF, USB forwarding removed. Native
+Terminal can close; collector/device authentication do not depend on it or the Mac.
+No physical Mac-off/reboot or live cancellation test was performed; read-only code,
+fixtures and systemd independent operation are verified. These are documented limits,
+not another interactive gate. Recurring task completion remains disabled.
+
+Original restorable backup/consistent task SQLite:
+`/var/backups/pf1007l-calendar/activation-20261114T231606Z-0b2c3d0c/backup`.
+Initial attempt failed CHDIR/200 because installer left public code root0700 under
+umask077. It stopped and rolled back before bridge/proxy/UI activation. Corrected
+recovery verified original backup and installed files, set public code directories
+0755 (private credentials/state remain0700/0600), reset only new collector's failure
+limit, and successfully resumed. No task DB rewind or Apple credential reset.
+Controller SHA256 `02954c789d4271db4e67b56f17a7b29d9dd0a6378b1f00ba6f531511758c14dc`.
+27 focused Calendar/setup/recovery tests passed; original candidate111 relevant
+checks/build/Linux pipeline also passed. Root control/retry code and final acceptance documentation are checkpointed on
+the existing feature branch; use `git log -1` for the final activation commit. No further reader-account creation attempts.
+
+Read [implementation/deployment/rollback runbook](pf1007l-calendar-integration.md).
+Frozen v3 manifest: `b392c9f1babe4028ac7dd3a6ecca60693bc79a64f801d8f8dfc1b699b830c1ef`.
+Local ignored artifacts `diagnostics/pf1007l/calendar-candidate-v3`, Mint stage
+`/home/hub/pf1007l-calendar-candidate-v3-review`. Credentials exist only root-private
+under `/etc/pf1007l-calendar`; state DynamicUser0700 under `/var/lib/pf1007l-calendar`.
+No real calendar titles/credentials/runtime cache in Git. For rollback restore
+bridge/proxy/UI code and remove only introduced calendar unit/drop-in, stop only
+calendar, preserve current task SQLite/Radicale and private credentials/data. Do not
+use the old whole-demo rollback script or restore task history from old snapshots.
 
 ## Cellular/Tailscale milestone closed — November 14
 
@@ -92,14 +118,11 @@ lists and personal iCloud data. No production or personal migration is authorize
    using the already implemented/tested candidate and consolidated runbook.
    Keep recurring completion blocked until proven correct. Do not repeat completed
    physical cellular/auth tests. Personal-account access requires separate approval.
-5. The scoped native root session was deliberately **finished**. No password is
-   needed for ordinary runtime authentication. Do not assume an old Terminal or
-   temporary SSH socket still holds authorization. If a new approved privileged
-   phase is needed, use a NEW native Terminal and
-   `python3 /Users/beestrother/Projects/kitchen-frame/deploy/reminders/activate_native.py --resume`.
-   It privately prompts, pins the controller and resumes the existing root-private
-   checkpoint/backup. `--recover` expects a restored legacy baseline and is wrong
-   for this active device-v1 deployment. Do not queue old deploy/finish actions.
+5. All scoped native root sessions are finished. Normal operation needs neither
+   sudo nor Mac/USB. Do not reuse old queues/windows/control sockets or run recovery
+   helpers against this healthy deployment. Obtain a new private native session
+   only for a genuinely required, scoped maintenance action; never collect passwords
+   in chat or repeat calendar account setup without a diagnosed need.
 6. Run only relevant tests. Dashboard `npm test`; Node proxy
    `node --test scripts/reminders-demo-proxy.test.mjs`; Python discovery under
    `deploy/reminders`, `deploy/lan-proxy/tests`, `deploy/ssh`, `deploy/icloud-calendar/tests`.
@@ -222,3 +245,11 @@ fictional/non-sensitive tasks only. No production authorization follows from tes
   approval needed. Todoist superseded. Spotify/Bambu remain later separate stages.
 - No personal task-list migration, default-list change, production sync, public
   exposure, unrelated-service restart or computer reboot is authorized.
+
+## Completed recovery history — do not rerun
+
+Initial CHDIR failure, automatic rollback and corrected resume are recorded above
+and in the integration report. The original backup remains untouched. Native root
+sessions are finished; old window IDs/queue files are not active authorization.
+Do not run `start_activation.py --resume` on the active deployment: that recovery
+mode expects the restored pre-calendar baseline, not a healthy running calendar.
