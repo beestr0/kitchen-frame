@@ -216,3 +216,32 @@ unchanged Reminders/cellular/session-lifetime tests were repeated. Secret scan a
 checkpoint cover source/tests/docs only; private backup and current event state
 stay on Linux. The view-only reader option remains unavailable to this owner;
 Option B is explicitly accepted and must not be reopened as a setup requirement.
+
+## November 15 metadata/selection completion (deployed)
+
+Original selections retained their IDs and hrefs. General and Appointments were
+matched uniquely by upstream displayname during one private metadata discovery,
+then added using their actual hrefs and stable opaque IDs. Work's existing collection
+now displays School. No events were edited/deleted and no new credentials requested.
+The frozen root helper `deploy/hiveos/finish_sprint.py` rejected missing/ambiguous
+matches and verified four fresh selected calendars before accepting deployment.
+
+The previous collector only used names/colors captured in selection config. It now
+issues depth-zero PROPFIND for each **selected** collection during the normal event
+refresh, validates displayname/color, and persists last-good metadata alongside the
+cached events. Snapshot events and legends use that metadata. Failed reads retain
+last-good data with stale status/backoff; restart retains the latest valid names.
+There is no automatic selection of unrelated calendars or additional event access.
+
+Tasks likewise read depth-zero displayname on their existing fixed collection every
+five minutes during normal successful polling. Do It is published to every existing
+UI label without changing collection/list/task identity. Metadata failure retains
+the last name and does not discard otherwise valid task data. Notes, due dates,
+completion semantics and recurring-write blocks are unchanged; no list migration.
+
+Actual post-reboot frame: four calendars/fresh,112 distinct UID/start/end occurrences,
+Do It/six tasks/fresh, authenticated read200, unauthorized401/query400/write405.
+Thirty Calendar tests,78 existing/updated Reminders regressions plus3 metadata
+boundary tests,73 dashboard tests and production build passed. Source/UI hashes
+match deployed files. See NEXT_SESSION and HiveOS runbook for backups and rollback;
+normal rollback must preserve current task history and Radicale data.

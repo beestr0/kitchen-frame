@@ -1,5 +1,93 @@
 # PF1007L — next session
 
+## Completion sprint — November 15, 2026 (current state)
+
+**The approved sprint is deployed. This section supersedes historical manual-start,
+two-calendar and hard-coded task-name statements below.** Remain on
+`feat/pf1007l-https-weather-handoff`; use `git log -3` for the final checkpoints.
+No new pages, tabs or integrations were introduced. Home layout/styles are unchanged.
+
+- Linux server verified `hub@10.157.1.115`; workshop laptop `.141`; USB frame `.146`.
+  The old `pf1007l-mint` SSH alias is absent on this laptop: use the existing verified
+  `hub@10.157.1.115` host entry. Strict host verification was not weakened.
+- **Four live calendars**: original two identities retained, Work now **School**;
+  **General** and **Appointments** added by exact iCloud collection identity using
+  existing credentials. Existing colors preserved/refreshed from provider metadata.
+  Frame112 occurrences,112 distinct UID/start/end keys, fresh. No Apple writes.
+- **Do It** comes from the existing fixed Radicale collection displayname, not a new
+  collection or migration. Six current task records/fresh. Deployment compared
+  task identities, versions, completion/due state before/after and found no changes.
+  Actual task completion was not repeated; existing bidirectional code/recurring
+  safeguards retained and fixture regressions passed.
+- Calendar now reads selected-collection name/color metadata each normal upstream
+  refresh (~5min). Task name is refreshed every5min on normal successful polling.
+  Last-good metadata survives offline/restart. Dashboard labels consume metadata
+  rather than hard-coded names; collection and task IDs never depend on names.
+- **Automatic startup passed one real warm reboot** through supported default HOME
+  selection. HiveOS was already foreground before any manual launch; static `.146`
+  reconnected, enrolled device-v1/authenticated data recovered. Vendor boot-receiver
+  blocking was left intact. A physical unplugged cold-power test was not performed.
+- New original fine-line vector bee and exact **get shit done.** installed in the
+  native startup overlay; light/dark palette, useful loading/error/retry controls,
+  prompt ready transition retained. Native label presence verified during an
+  offline WebView reload; automatic recovery returned Home. An attempted splash
+  screenshot caught recovered Home and was deleted locally/on-device.
+- Same package, original signer, version6, UID10026, saved native preferences hash
+  unchanged. No uninstall/data clear, credential reset or new enrollment.
+- Etar, ICSdroid and the unenrolled auth probe disabled reversibly with data intact.
+  Rootless, HomeHQ and all34 system packages preserved; three previously disabled
+  manufacturer packages were left as found. See package restoration table in runbook.
+- Seven services active/enabled; HTTPS upstreamErrors0. Installed collector, CalDAV
+  reader, bridge and UI index SHA256s match reviewed local source/build. Linux/frame
+  runtime still has no laptop, USB, terminal or Codex dependency. No Jellyfin,
+  Tailscale, router or Linux reboot/config change.
+- Post-reboot Home60.1822FPS over5s, no >50ms gaps,max16.617ms. Calendar/Tasks/session
+  200, device-v1; unauthorized401/query400/write405; no private task/calendar storage
+  keys in localStorage. Temporary debugging/USB forwarding off; left on normal Home.
+
+### Checks and bounded limitations
+
+Dashboard73 tests; Calendar30 tests; server Reminders78 tests plus3 new fixed-list
+metadata boundary tests passed. Native startup gates and21 URL-policy cases passed;
+production web build and original-signer APK build/verification passed. Initial
+local Reminders run lacked vobject, so the existing server venv ran the source-only
+fixtures instead. One dashboard subprocess check failed inside sandbox with missing
+stderr; all73 passed outside sandbox. Complete initial logs remain in `/tmp/hiveos-*`
+on the workshop laptop; server fixture log is
+`/home/hub/hiveos-sprint-20261115/reminders-tests.log` (no live data).
+
+Bounded review of reported spontaneous Calendar date changes found offsets changed
+only by explicit button handlers, no timer/key/swipe navigation path. Cause was not
+established; no speculative fix or prolonged ghost-touch investigation. Future
+reproduction should distinguish trusted touch/external input from automation;
+never log personal calendar contents. No phone edit/completion roundtrip, new
+physical finger-hold check, power-unplug test or multi-day soak was repeated.
+
+### Deployment and recovery
+
+Owner ran the staged verified root helper after privately entering sudo; returned
+DEPLOYED/healthy, independently corroborated by live frame checks and code hashes.
+`deploy/hiveos/finish_sprint.py` is the bounded source helper; **do not rerun it just
+to inspect health**. Frozen source-only bundle SHA256
+`df199ffa101599cd0d36ffdcb8df8c590d1870a415d0533a52999fe395b9b7ca`.
+Private frozen copy `/root/hiveos-sprint-20261115`; original stage
+`/home/hub/hiveos-sprint-20261115/release.tar`. No credentials in these bundles.
+Root-private backup under `/var/backups/pf1007l-sprint/<UTC timestamp>/` includes
+prior config/source/UI and consistent task SQLite. Find the exact directory from
+root and read its `rollback.txt`. Restore only previous code/config/UI and restart
+Calendar/bridge; **never rewind current task SQLite/operations or Radicale data**
+for normal rollback. Credentials, registry, exact-IP guards and auth remain intact.
+
+[HiveOS runbook](pf1007l-hiveos.md#november-15-completion-sprint--supported-home-startup-verified)
+has APK hashes, signed known-good v6 location, default-Home reversal, Android Settings
+escape, and three package restore commands. Hold two fingers2s → Home app settings
+(or Android settings → Home) → select Rootless radio to reverse the default.
+Settings and HomeHQ launches were verified before changing Home. Existing physical
+escape gesture implementation is unchanged. Prefer normal use now; no additional
+features or excluded integrations are pending from this sprint.
+
+## Historical handoff (retain for evidence; current summary above takes precedence)
+
 ## End-of-day handoff — November 14, 2026
 
 **Owner confirmed static Wi-Fi is saved and HiveOS is connected and working.**

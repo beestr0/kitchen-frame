@@ -228,3 +228,79 @@ Linux/frame deployment has no MacBook/Codex/Terminal/USB runtime dependency. No
 services restarted or other changes made. Development stopped; next-session summary
 and exact resume command are in NEXT_SESSION.md. Personal data/migration scope and
 all existing recovery safeguards remain unchanged.
+
+## November 15 completion sprint — supported HOME startup verified
+
+This supersedes the earlier accepted manual-start limitation. The vendor still
+blocks BOOT_COMPLETED; no vendor policy was bypassed or modified. The HiveOS build
+now retains its Android HOME intent. In Android Settings → Home, selecting the
+**radio control beside HiveOS** persists the standard preferred Home activity.
+Tapping the nested text area did not select it on this firmware. A HOME intent
+then resolved directly to HiveOS, with no chooser.
+
+One actual `adb reboot` completed: boot_completed=1, new app PID, HiveOS already
+foreground **before any manual app launch**, preferred Home still HiveOS, Wi-Fi
+reconnected at static10.157.1.146. Authenticated frame Calendar/Tasks/session all200,
+four calendars fresh,112 distinct UID/start/end occurrences, Do It fresh, device-v1.
+Unauthorized Calendar401, query400, POST405. Post-reboot Home five-second sample
+60.1822FPS, zero >50ms gaps,max16.617ms. This was a warm reboot, **not a physical
+unplugged cold-power test**. No laptop-hosted runtime component was introduced.
+
+Native startup uses original fine-line Canvas paths for a bee, “HiveOS” and exact
+“get shit done.”, with existing time/preference-based light/dark colors. No bitmap,
+network asset, animation loop or startup delay added. Existing ready fade, watchdog,
+Retry, Android Settings, two-finger escape, authentication and saved URL are retained.
+A USB-local WebView-only offline reload exposed all four expected native labels
+(HiveOS/slogan/Retry/Android settings) and recovered automatically when connectivity
+returned. A delayed screenshot caught the recovered Home instead; that image was
+deleted locally and on-device. No diagnostic screenshot is a source artifact.
+
+### Recovery and reversal
+
+- Hold two fingers still for two seconds → **Home app settings** (new item in the
+  existing native recovery menu), or **Android settings** → Home. Select the radio
+  beside **Rootless Pixel Launcher** to reverse the default. Rootless and HomeHQ
+  remain installed/enabled. Both Settings and HomeHQ activities were launched
+  successfully before selecting HiveOS. Existing physical two-finger gesture code
+  is unchanged; no new physical finger-hold acceptance was claimed this session.
+- USB fallback: `adb -d shell am start -a android.settings.HOME_SETTINGS` opens the
+  verified standard Home selector. `adb -d shell am start -a android.settings.SETTINGS`
+  opens Settings. No development computer is needed for the native menu path.
+- Known-good installed v6 was pulled **before update**, original signer/UID10026:
+  ignored `diagnostics/pf1007l/sprint-20261115/known-good-v6.apk`, SHA256
+  `1829cb4ead395717276a973f7fbb9fad18f655eaa9bc339bab987b1a4826f6a9`.
+  First select Rootless in Home settings, then `adb -d install -r <known-good-v6.apk>`
+  and explicitly launch `com.huntsyea.frame/.MainActivity`. Never uninstall/clear data.
+- New same-version/same-signer APK: `kiosk/build-hiveos/hiveos.apk`, SHA256
+  `01022a6ff41dad87fc02e22d81fe3d2973f2c9ec2bf919f865ab5f0ad91c92ca`.
+  Native preferences hash before/after upgrade matched exactly; saved URL/native
+  authentication remained intact. Original signing keystore was reused.
+- Rebuild on Mint with `ANDROID_HOME=/home/bee/Android/Sdk`
+  `JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 python3 kiosk/lan-tls/build.py --hiveos`.
+  Other test/rollback variants continue to strip HOME; only `--hiveos` retains it.
+- Temporary WebView debugging and USB forwarding were removed after checks.
+
+### Conservative package cleanup
+
+Full installed package inventory was read. All34 system packages were preserved;
+manufacturer roles were not inferred from unfamiliar names. Three user packages
+were disabled with `pm disable-user --user 0`, retaining APK/data:
+
+| Package | Classification / action | Restore over USB |
+| --- | --- | --- |
+| `ws.xsoh.etar` | Unneeded native calendar; disabled, its running process stopped (~43MiB RSS before) | `adb -d shell pm enable --user 0 ws.xsoh.etar` |
+| `at.bitfire.icsdroid` | Unneeded native ICS sync; disabled | `adb -d shell pm enable --user 0 at.bitfire.icsdroid` |
+| `com.huntsyea.frame.authprobe` | Unenrolled disposable probe; disabled | `adb -d shell pm enable --user 0 com.huntsyea.frame.authprobe` |
+| `com.huntsyea.frame` | Required; enabled | Preserved |
+| `amirz.rootless.nexuslauncher` | Recovery launcher; enabled | Preserved |
+| `com.wesbos.homehq` | Recovery app; enabled | Preserved |
+
+Settings → Apps → Disabled → app → Enable also reverses these changes without USB.
+Core framework/providers, WebView, settings, Wi-Fi/networking, certificate/keychain,
+input methods/input devices, package installer/container, storage/download/media,
+proxy/VPN/captive portal, location and provisioning services are essential or
+conservatively protected. HTML viewer, TTS, legacy messaging, manufacturer test,
+OTA and vendor packages were retained as system/recovery/unknown-purpose components.
+`com.yhk.qeota`, `com.efercro.os.aimor`, and `com.DeviceTest` were **already disabled**;
+this sprint did not change their state. No package was uninstalled; no system
+component, HomeHQ data, launcher APK or network/security setting was changed.
