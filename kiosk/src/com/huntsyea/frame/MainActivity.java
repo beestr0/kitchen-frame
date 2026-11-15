@@ -4,6 +4,11 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.webkit.WebChromeClient;
+import android.webkit.ConsoleMessage;
+import android.widget.FrameLayout;
 import android.graphics.Color;
 import android.net.http.SslError;
 import android.net.Uri;
@@ -36,8 +41,8 @@ import java.util.Collections;
  * Remote debugging (chrome://inspect) only while launched with:  --ez debug true
  * Escape hatch: hold two fingers still on the screen for 2 seconds.
  *
- * This frame has no battery-backed clock: every power-up starts in 2008 until Wi-Fi time sync,
- * so the first HTTPS load fails with a certificate error. Every failure, SSL included, schedules
+ * This frame has no battery-backed clock: power-up can start with a reset date,
+ * or the Unix epoch until Wi-Fi time sync, so HTTPS must wait for a valid clock. Every failure, SSL included, schedules
  * a retry, and a watchdog reloads if the page has never finished loading.
  *
  * The page can set the screen brightness through window.FrameKiosk (see Bridge); the value is
@@ -54,6 +59,8 @@ public class MainActivity extends Activity {
   private final Handler handler = new Handler(Looper.getMainLooper());
   private WebView web;
   private String url;
+  private HiveStartup startup;
+  private int renderChecks;
   private final float[] downX = new float[2];
   private final float[] downY = new float[2];
   private boolean escapeArmed;
@@ -65,13 +72,13 @@ public class MainActivity extends Activity {
 
   // The frame often starts before Wi-Fi is up: keep retrying the dashboard until it loads.
   private final Runnable retry = new Runnable() {
-    @Override public void run() { if (url != null) { Log.i(TAG, "retrying load"); web.loadUrl(url); } }
+    @Override public void run() { if (url != null) { Log.i(TAG, "retrying load"); loadDashboard(); } }
   };
 
   // Belt and braces: whatever went wrong, keep trying until the dashboard has loaded once.
   private final Runnable watchdog = new Runnable() {
     @Override public void run() {
-      if (!loadedOnce && url != null) { Log.w(TAG, "watchdog: never loaded, reloading"); web.loadUrl(url); }
+      if (!loadedOnce && url != null) { Log.w(TAG, "watchdog: never loaded, reloading"); loadDashboard(); }
       handler.postDelayed(this, WATCHDOG_MS);
     }
   };
@@ -80,7 +87,7 @@ public class MainActivity extends Activity {
     @Override public void run() {
       escapeArmed = false;
       new AlertDialog.Builder(MainActivity.this)
-          .setTitle("Frame")
+          .setTitle("HiveOS")
           .setItems(new String[] {"Reload dashboard", "Android settings", "Device enrollment (demo)"}, (d, which) -> {
             if (which == 0) web.reload();
             else if (which == 1) startActivity(new Intent(Settings.ACTION_SETTINGS));
@@ -107,6 +114,17 @@ public class MainActivity extends Activity {
     // The dashboard is https; Home Assistant on the home network is plain http (ws://). Without
     // this, WebView blocks the page from reaching it as mixed content.
     s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+    startup = new HiveStartup(this, getSharedPreferences(PREFS, MODE_PRIVATE).getString("startup-theme", "auto"),
+        () -> loadDashboard(), () -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
+    web.setWebChromeClient(new WebChromeClient() {
+      @Override public boolean onConsoleMessage(ConsoleMessage message) {
+        if (!loadedOnce && message.messageLevel() == ConsoleMessage.MessageLevel.ERROR && message.message().startsWith("Uncaught")) {
+          Log.w(TAG, "Dashboard startup JavaScript error");
+          startup.problem("Dashboard could not start. Retrying automatically…");scheduleRetry();
+        }
+        return false;
+      }
+    });
     web.setWebViewClient(new WebViewClient() {
       @Override
       public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -134,12 +152,7 @@ public class MainActivity extends Activity {
 
       @Override
       public void onPageFinished(WebView view, String finished) {
-        // Error-page completion can retain the previous title. Never cancel its retry.
-        if (!mainFrameFailed && view.getTitle() != null && !view.getTitle().isEmpty() && !view.getTitle().startsWith("Webpage")) {
-          loadedOnce = true;
-          handler.removeCallbacks(retry);
-          Log.i(TAG, "loaded " + view.getTitle());
-        }
+        if (!mainFrameFailed && DevicePolicy.trustedPage(finished)) checkRendered();
       }
 
       @Override
@@ -148,8 +161,15 @@ public class MainActivity extends Activity {
           mainFrameFailed = true;
           loadedOnce = false;
           Log.w(TAG, "load error " + error.getErrorCode() + " " + error.getDescription());
+          startup.problem("Could not reach the dashboard. Check Wi-Fi or server access. Retrying…");
           scheduleRetry();
         }
+      }
+
+      @Override
+      public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse response) {
+        if (request.isForMainFrame()) { mainFrameFailed=true;loadedOnce=false;
+          startup.problem("Dashboard access is unavailable. Retrying securely…");scheduleRetry(); }
       }
 
       @Override
@@ -157,6 +177,7 @@ public class MainActivity extends Activity {
         // Never bypass certificate checks; just try again (the clock is probably still syncing).
         Log.w(TAG, "ssl error " + error.getPrimaryError() + " (device time " + new java.util.Date() + ")");
         sslHandler.cancel();
+        startup.problem("Secure connection is not ready. Check automatic date/time and Wi-Fi. Retrying…");
         mainFrameFailed = true;
         loadedOnce = false;
         scheduleRetry();
@@ -164,22 +185,42 @@ public class MainActivity extends Activity {
     });
     web.addJavascriptInterface(new Bridge(), "FrameKiosk");
     applyBrightness(getSharedPreferences(PREFS, MODE_PRIVATE).getFloat("brightness", -1f));
-    setContentView(web);
+    FrameLayout container = new FrameLayout(this);
+    container.addView(web, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,FrameLayout.LayoutParams.MATCH_PARENT));
+    container.addView(startup, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,FrameLayout.LayoutParams.MATCH_PARENT));
+    setContentView(container);
+    // DEVICE_AUTH_ATTACH_POINT
 
     handleIntent(getIntent());
     if (url == null) url = getSharedPreferences(PREFS, MODE_PRIVATE).getString("url", null);
     if (url != null && deviceAuthEnabled() && !DevicePolicy.trustedPage(url)) url = null;
-    if (url != null) { web.loadUrl(url); handler.postDelayed(watchdog, WATCHDOG_MS); }
-    else web.loadData("<body style='background:#000;color:#999;font:24px sans-serif;padding:48px'>"
-        + "No dashboard URL set. Set one over ADB:<br><br><code>adb shell am start -n "
-        + "com.huntsyea.frame/.MainActivity -d &lt;url&gt;</code></body>", "text/html", "utf-8");
+    // LAN_PROXY_STARTUP
+    loadDashboard();
+    handler.postDelayed(watchdog, WATCHDOG_MS);
   }
 
   @Override
   protected void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
     setIntent(intent);
-    if (handleIntent(intent)) web.loadUrl(url);
+    if (handleIntent(intent)) loadDashboard();
+  }
+
+  private void loadDashboard() {
+    NetworkInfo network = ((ConnectivityManager)getSystemService(CONNECTIVITY_SERVICE)).getActiveNetworkInfo();
+    String waiting = StartupPolicy.waiting(url, System.currentTimeMillis(), network != null && network.isConnected());
+    if (waiting != null) { startup.problem(waiting);loadedOnce=false;scheduleRetry();return; }
+    handler.removeCallbacks(retry);renderChecks=0;web.loadUrl(url);
+  }
+
+  private void checkRendered() {
+    if (mainFrameFailed || !DevicePolicy.trustedPage(web.getUrl())) return;
+    web.evaluateJavascript("(function(){return !!document.querySelector('.stage .view');})()", value -> {
+      if (mainFrameFailed) return;
+      if ("true".equals(value)) { loadedOnce=true;startup.ready();handler.removeCallbacks(retry); }
+      else if (++renderChecks < 30) handler.postDelayed(() -> checkRendered(),500);
+      else { loadedOnce=false;startup.problem("Dashboard did not render. Retrying automatically…");scheduleRetry(); }
+    });
   }
 
   /** Applies the debug flag and, when the intent carries a URL, saves it. True if the URL changed. */

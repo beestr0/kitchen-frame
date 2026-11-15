@@ -43,3 +43,7 @@ kiosk/build-auth-rollback/
 /deploy/icloud-calendar/config.json
 /deploy/icloud-calendar/bridge-key
 /deploy/icloud-calendar/*.sqlite*
+
+# Private verified native HiveOS build/rollback artifacts
+kiosk/build-hiveos/
+kiosk/build-hiveos-rollback/

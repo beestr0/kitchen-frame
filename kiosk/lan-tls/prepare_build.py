@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import subprocess
 import shutil
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -32,7 +33,7 @@ def fetch(group,artifact,version,extension,offline=False):
 def version_key(value):return tuple(int(v) for v in re.findall(r'\d+',value))
 
 
-def main(output=None, offline=False):
+def main(output=None, offline=False, source_ref=None):
     out=Path(output) if output is not None else OUT
     out.mkdir(parents=True,exist_ok=True);CACHE.mkdir(exist_ok=True)
     queue=deque([('androidx.webkit','webkit','1.14.0')]);selected={}
@@ -68,25 +69,39 @@ def main(output=None, offline=False):
             if manifest.attrib.get('package'):packages.append(manifest.attrib['package'])
         else:jars.append(str(path))
     source=out/'src';source.mkdir(exist_ok=True)
-    for original in (KIOSK/'src').rglob('*.java'):
-        target=source/original.relative_to(KIOSK/'src');target.parent.mkdir(parents=True,exist_ok=True)
-        text=original.read_text()
-        if original.name=='MainActivity.java':
-            text=text.replace('    setContentView(web);', '''    setContentView(web);
-    setDeviceAuthAvailable(DeviceAuthController.isSupported());
+    def content(relative):
+        if source_ref:
+            return subprocess.check_output(['git','show',source_ref+':kiosk/'+relative],cwd=KIOSK.parent,text=True)
+        return (KIOSK/relative).read_text()
+    if source_ref:
+        paths=subprocess.check_output(['git','ls-tree','-r','--name-only',source_ref,'kiosk/src'],cwd=KIOSK.parent,text=True).splitlines()
+        paths=[name[len('kiosk/'):] for name in paths if name.endswith('.java')]
+    else:
+        paths=[str(p.relative_to(KIOSK)) for p in (KIOSK/'src').rglob('*.java')]
+    for relative in paths:
+        target=out/relative;target.parent.mkdir(parents=True,exist_ok=True)
+        text=content(relative)
+        if target.name=='MainActivity.java':
+            attach='''    setDeviceAuthAvailable(DeviceAuthController.isSupported());
     if (deviceAuthEnabled() && !DeviceAuthController.attach(this, web)) {
       web.loadData("<body>Device authentication is unsupported by this WebView. No security fallback was enabled.</body>", "text/html", "utf-8");
       return;
-    }''')
-            anchor='    if (url != null) { web.loadUrl(url); handler.postDelayed(watchdog, WATCHDOG_MS); }'
-            end='        + "com.huntsyea.frame/.MainActivity -d &lt;url&gt;</code></body>", "text/html", "utf-8");'
-            start=text.index(anchor);stop=text.index(end,start)+len(end)
-            startup=text[start:stop]
-            text=text[:start]+'    LanTlsProxy.install(this, () -> {\n'+startup+'\n    });'+text[stop:]
+    }'''
+            if '// DEVICE_AUTH_ATTACH_POINT' in text:
+                attach=attach.replace('web.loadData("<body>Device authentication is unsupported by this WebView. No security fallback was enabled.</body>", "text/html", "utf-8");',
+                    'startup.problem("Device authentication is unavailable in this WebView. Open Android settings.");')
+                text=text.replace('    // DEVICE_AUTH_ATTACH_POINT',attach)
+                text=text.replace('    // LAN_PROXY_STARTUP\n    loadDashboard();','    LanTlsProxy.install(this, () -> loadDashboard());')
+            else:
+                text=text.replace('    setContentView(web);','    setContentView(web);\n'+attach)
+                anchor='    if (url != null) { web.loadUrl(url); handler.postDelayed(watchdog, WATCHDOG_MS); }'
+                end='        + "com.huntsyea.frame/.MainActivity -d &lt;url&gt;</code></body>", "text/html", "utf-8");'
+                start=text.index(anchor);stop=text.index(end,start)+len(end)
+                text=text[:start]+'    LanTlsProxy.install(this, () -> {\n'+text[start:stop]+'\n    });'+text[stop:]
         target.write_text(text)
-    shutil.copy2(HERE/'LanTlsProxy.java',source/'com/huntsyea/frame/LanTlsProxy.java')
-    shutil.copy2(HERE/'DeviceAuthController.java',source/'com/huntsyea/frame/DeviceAuthController.java')
-    manifest=(KIOSK/'AndroidManifest.xml').read_text()
+    for name in ['LanTlsProxy.java','DeviceAuthController.java']:
+        (source/'com/huntsyea/frame'/name).write_text(content('lan-tls/'+name))
+    manifest=content('AndroidManifest.xml')
     manifest=re.sub(r'^.*<category android:name="android.intent.category.HOME".*\n','',manifest,flags=re.M)
     (out/'AndroidManifest.xml').write_text(manifest)
     (out/'dependencies.json').write_text(json.dumps({'jars':jars,'resources':resources,'packages':packages},indent=2))

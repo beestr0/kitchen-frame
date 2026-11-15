@@ -12,9 +12,12 @@ from prepare_build import KIOSK,OUT,main as prepare
 def main():
     candidate='--auth-candidate' in sys.argv
     rollback='--auth-rollback' in sys.argv
-    if candidate and rollback:raise RuntimeError('Choose candidate or rollback, not both')
+    hiveos='--hiveos' in sys.argv
+    hive_rollback='--hiveos-rollback' in sys.argv
+    if sum([candidate,rollback,hiveos,hive_rollback])>1:raise RuntimeError('Choose exactly one build variant')
     out=KIOSK/('build-auth-rollback' if rollback else 'build-auth-candidate') if candidate or rollback else OUT
-    prepare(out,offline=candidate or rollback)
+    if hiveos or hive_rollback:out=KIOSK/('build-hiveos-rollback' if hive_rollback else 'build-hiveos')
+    prepare(out,offline=candidate or rollback or hiveos or hive_rollback,source_ref='94ccb0d' if candidate or rollback or hive_rollback else None)
     if rollback:
         # Same version/signature as candidate: reinstall can preserve app data
         # without relying on Android's downgrade permission or uninstalling.
@@ -39,7 +42,7 @@ def main():
     generated=out/'generated';generated.mkdir(exist_ok=True)
     unsigned=out/'unsigned.apk'
     run([tools/'aapt2','link','--manifest',out/'AndroidManifest.xml','-I',platform,'-o',unsigned,
-         '--min-sdk-version','23','--target-sdk-version','27','--version-code','5' if candidate or rollback else '4','--version-name','1.3-rollback-v5' if rollback else '1.4-auth-candidate' if candidate else '1.3-lan-tls',
+         '--min-sdk-version','23','--target-sdk-version','27','--version-code','6' if hiveos or hive_rollback else '5' if candidate or rollback else '4','--version-name','1.4-rollback-hiveos-v6' if hive_rollback else '1.5-hiveos' if hiveos else '1.3-rollback-v5' if rollback else '1.4-auth-candidate' if candidate else '1.3-lan-tls',
          '--auto-add-overlay','--java',generated,'--extra-packages',':'.join(deps['packages']),*resources])
     classes=out/'classes';classes.mkdir(exist_ok=True)
     sources=list((out/'src').rglob('*.java'))+list(generated.rglob('*.java'))
@@ -51,7 +54,7 @@ def main():
     aligned=out/'aligned.apk';run([tools/'zipalign','-f','4',unsigned,aligned])
     key=Path.home()/'.android/debug.keystore'
     if not key.exists():raise RuntimeError('Original signing key missing; refusing to create a replacement')
-    apk=out/('frame-auth-rollback.apk' if rollback else 'frame-auth-candidate.apk' if candidate else 'frame-test-lan-tls.apk')
+    apk=out/('hiveos-rollback.apk' if hive_rollback else 'hiveos.apk' if hiveos else 'frame-auth-rollback.apk' if rollback else 'frame-auth-candidate.apk' if candidate else 'frame-test-lan-tls.apk')
     run([tools/'apksigner','sign','--ks',key,'--ks-pass','pass:android','--key-pass','pass:android','--out',apk,aligned])
     run([tools/'apksigner','verify','--verbose','--print-certs',apk])
     print('Prepared APK only:',apk)

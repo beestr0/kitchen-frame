@@ -7,6 +7,34 @@ verified activation tooling, recovery tests and documentation. Use `git log -1`
 and the branch upstream to identify its final commit; no deployment is required
 to restore this source checkpoint. No production/personal migration is authorized.
 
+## Mounted frame restored; HiveOS v6 active
+
+Read [HiveOS recovery, artifacts and rollback](pf1007l-hiveos.md). USB connected;
+wireless ADB was not enabled. DHCP moved frame .76→**10.157.1.146**, causing exact-IP
+HTTPS/firewall/bridge guards to reject it. Approved repair completed; do not repeat
+installation or sudo. Root-private network/config/consistent SQLite backup:
+`/var/backups/pf1007l-network/repair-20261115T003609Z-4c550191`.
+
+Owner approved HiveOS v6 in-place update and kiosk-only restart. Installation passed:
+com.huntsyea.frame/.MainActivity, version6/1.5-hiveos, original signer, UID10026;
+whole native settings hash unchanged, authentication key and saved URL preserved.
+Actual frame: live Calendar109/two calendars/fresh, Reminders10/fresh, weather and
+device-v1 session200; security rejection checks passed, **60.1627FPS**, zero >50ms.
+Native HiveOS/subtitle/error/Retry/Settings verified using WebView-only offline
+simulation; automatic recovery9.287s. Debugging OFF and USB forwarding removed.
+All seven Linux services checked active; HomeHQ/default launcher untouched.
+
+Same-version/same-signer rollback APK retained and documented; no uninstall/data
+clearing/re-enrollment/reboot. BOOT receiver/permission verified, no HOME category;
+synthetic broadcasts did not establish foreground autolaunch. **Physical boot remains
+unverified**: prepare one controlled power-cycle only after explicit permission.
+Manufacturer splash/firmware remain unchanged. First reserve current .146 in router
+DHCP using private local MAC record (see runbook); no router changes were made.
+Exact-IP allowlist remains narrow and future address changes still fail closed.
+
+Next: one short visual acceptance and, after reservation/permission, one controlled
+boot test. Do not repeat unchanged Calendar/Reminders/Siri/cellular round trips.
+
 ## Live Apple Calendar activated and physically accepted
 
 Owner authorized Option B (existing Apple Account, dedicated app-specific password),
