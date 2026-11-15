@@ -7,7 +7,7 @@ import { ha, announce } from './ha.svelte.js';
 import { resolveTheme } from './theme.js';
 import { focus } from './focus.svelte.js';
 import { remaining } from './focus.js';
-import { projectReminders } from './reminders.js';
+import { projectReminders, reminderListName } from './reminders.js';
 import { createDeviceSession } from './device-session.js';
 import { reconcileCalendar, combineCalendar } from './private-calendar.js';
 export const remindersPilot = import.meta.env.VITE_REMINDERS_PILOT === true;
@@ -71,7 +71,7 @@ export function calendarCovers(day) {
   const key = day.getFullYear() + '-' + String(day.getMonth()+1).padStart(2,'0') + '-' + String(day.getDate()).padStart(2,'0');
   return key >= window.from.slice(0,10) && key < window.to.slice(0,10);
 }
-export const reminders = $state({ events: [], stale: true, error: null, lastSuccess: null });
+export const reminders = $state({ listName: 'Reminders', events: [], stale: true, error: null, lastSuccess: null });
 export function calendarEvents() {
   return combineCalendar(privateCalendar, calendar.data?.events || [], remindersPilot ? reminders.events : []);
 }
@@ -113,9 +113,10 @@ export function loadReminders() {
       // Never persist task data or provider/session credentials in localStorage.
       if (JSON.stringify(lists.todo.items) !== JSON.stringify(projection.tasks)) lists.todo.items = projection.tasks;
       if (JSON.stringify(reminders.events) !== JSON.stringify(projection.events)) reminders.events = projection.events;
-      Object.assign(lists.todo, { sections: [{ id: 'pf1007l-test', name: 'PF1007L Test' }], people: {}, project: 'PF1007L Test · Demo',
+      const listName = reminderListName(snapshot);
+      Object.assign(lists.todo, { sections: [{ id: 'pf1007l-test', name: listName }], people: {}, project: listName,
         error: snapshot.stale ? snapshot.error || 'Demo reminders are out of date' : null });
-      Object.assign(reminders, { stale: snapshot.stale, error: lists.todo.error, lastSuccess: snapshot.lastSuccess });
+      Object.assign(reminders, { listName, stale: snapshot.stale, error: lists.todo.error, lastSuccess: snapshot.lastSuccess });
     } catch (error) {
       reminders.stale = true; reminders.error = lists.todo.error = error.message;
       lists.todo.items = (lists.todo.items || []).map(item => ({ ...item, canComplete: false }));
@@ -339,7 +340,7 @@ export async function completeItem(name, item) {
 }
 
 export async function addItem(name, content) {
-  if (remindersPilot && name === 'todo') { lists.todo.error = 'Create demonstration reminders in the iPhone PF1007L Test list.'; return false; }
+  if (remindersPilot && name === 'todo') { lists.todo.error = 'Create reminders on your iPhone in ' + reminders.listName + '.'; return false; }
   const list = lists[name];
   if (ui.demo) { list.items = [...(list.items || []), { id: 'demo-' + Date.now(), content }]; return true; }
   try {

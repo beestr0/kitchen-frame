@@ -12,7 +12,7 @@
   <div class="body">
     <div class="title">{event.title}</div>
     <div class="meta">
-      {#if showDay}{dayName(event, now) + ' · '}{/if}{#if event.kind === 'reminder'}Due{event.allDay ? '' : ' ' + new Date(event.start).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})} · PF1007L Test{:else if event.allDay}All day{:else if live}<b>Now</b> · until {timeRange(event).split(' – ')[1]}{:else}{timeRange(event)}{/if}{event.calendarName && event.kind !== 'reminder' ? ' · ' + event.calendarName : ''}{event.location && !showDay ? ' · ' + event.location : ''}
+      {#if showDay}{dayName(event, now) + ' · '}{/if}{#if event.kind === 'reminder'}Due{event.allDay ? '' : ' ' + new Date(event.start).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})} · {reminders.listName}{:else if event.allDay}All day{:else if live}<b>Now</b> · until {timeRange(event).split(' – ')[1]}{:else}{timeRange(event)}{/if}{event.calendarName && event.kind !== 'reminder' ? ' · ' + event.calendarName : ''}{event.location && !showDay ? ' · ' + event.location : ''}
     </div>
   </div>
 </div>

@@ -38,7 +38,7 @@
 
 <div class="wrap">
   <header class="bar">
-      <h2>{label}{#if remindersPilot && !privateCalendar.enabled}<small> · PF1007L Test demo{reminders.stale ? ' · Outdated' : ''}</small>{/if}</h2>
+      <h2>{label}{#if remindersPilot && !privateCalendar.enabled}<small> · {reminders.listName}{reminders.stale ? ' · Outdated' : ''}</small>{/if}</h2>
     <div class="pager">
       {#if page > 0}<button class="today-btn" onclick={() => go(0)}>Today</button>{/if}
       <div class="seg" role="tablist" aria-label="Calendar view">

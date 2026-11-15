@@ -75,9 +75,12 @@ class Collector:
             if self.blocked or now<self.retry.get(c['id'],0):continue
             old=self.load(c) or {'events':[],'lastSuccess':None}
             try:
+                metadata=self.client.metadata(c['href'])
+                c.update(name=metadata['name'])
+                if metadata.get('color'):c['color']=metadata['color']
                 rows=self.client.query_events(c['href'],start,end)
                 events=self.normalizer(rows,c,start,end,self.zone)
-                value={'events':events,'lastSuccess':now,'lastAttempt':now,'stale':False,
+                value={'events':events,'metadata':{k:c[k] for k in ('name','color')},'lastSuccess':now,'lastAttempt':now,'stale':False,
                        'from':start.isoformat(),'to':end.isoformat()}
                 self.failures[c['id']]=0;self.retry[c['id']]=now+self.period
             except Exception as error:
@@ -92,6 +95,7 @@ class Collector:
         now=self.clock();events=[];calendars=[];success=[];starts=[];ends=[];failed=False
         for c in self.calendars:
             value=self.load(c) or {};last=value.get('lastSuccess')
+            c={**c,**value.get('metadata',{})}
             failed = failed or bool(value.get('error'))
             stale=value.get('stale',True) or last is None or now-last>max(900,self.period*2)
             calendars.append({k:c[k] for k in ('id','name','color')} | {'stale':stale,'lastSuccess':last})

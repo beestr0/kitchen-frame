@@ -148,6 +148,20 @@ class ReadonlyCalDAV:
                 if len(calendars) > 100: raise CalendarError('Too many calendar collections')
         return list(calendars.values())
 
+    def metadata(self, collection):
+        collection = approved_url(collection)
+        effective, root = self._props(collection, [D + 'displayname', A + 'calendar-color'])
+        rows = [(href, props) for href, props in self._successful_props(root)
+                if href and approved_url(href, effective) == effective]
+        if len(rows) != 1:
+            raise CalendarError('Calendar metadata unavailable')
+        props = {p.tag: p.text for p in rows[0][1]}
+        name = props.get(D + 'displayname')
+        if not isinstance(name, str) or not name.strip() or len(name) > 120 or any(ord(c) < 32 for c in name):
+            raise CalendarError('Calendar metadata unavailable')
+        color = props.get(A + 'calendar-color') or ''
+        return {'name': name, 'color': color[:7] if re.fullmatch(r'#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?', color) else None}
+
     def query_events(self, collection, start, end):
         # Query selected collections only; never schedule, subscribe, create or edit.
         if not all(isinstance(t, datetime) and t.tzinfo is not None for t in (start, end)) or not 0 < (end-start).total_seconds() <= 366*86400:

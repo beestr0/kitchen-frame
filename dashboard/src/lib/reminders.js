@@ -70,3 +70,9 @@ export function projectReminders(snapshot) {
   }
   return { tasks, events };
 }
+
+// Provider metadata is display-only; collection/task keys never derive from names.
+export function reminderListName(snapshot) {
+  const name = snapshot?.list;
+  return typeof name === 'string' && name.trim() && name.length <= 120 && !/[\u0000-\u001f]/.test(name) ? name : 'Reminders';
+}

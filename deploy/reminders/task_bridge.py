@@ -118,6 +118,7 @@ class Bridge:
         self.last_error = None
         self.clock, self.jitter = clock, jitter
         self.auth_failed = False
+        self.metadata_next = 0
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
         self.auth_mode = settings.get('authMode', 'legacy-demo')
         if self.auth_mode not in ('legacy-demo', 'device-v1'):
@@ -142,10 +143,10 @@ class Bridge:
             self.db.execute('INSERT OR REPLACE INTO state VALUES (?,?)', ('snapshot', json.dumps(snapshot)))
 
     def dav(self, method, path, body=None, etag=None):
-        if method not in ('REPORT', 'GET', 'PUT'):
+        if method not in ('REPORT', 'GET', 'PUT', 'PROPFIND'):
             raise TaskError(403, 'Task route denied')
-        task_path(path, collection=method == 'REPORT')
-        if method == 'REPORT' and path != COLLECTION:
+        task_path(path, collection=method in ('REPORT', 'PROPFIND'))
+        if method in ('REPORT', 'PROPFIND') and path != COLLECTION:
             raise TaskError(403, 'Task route denied')
         auth = base64.b64encode((self.account['username'] + ':' + self.account['password']).encode()).decode()
         headers = {'Authorization': 'Basic ' + auth, 'Depth': '1' if method == 'REPORT' else '0',
@@ -156,7 +157,7 @@ class Bridge:
         request = urllib.request.Request('http://127.0.0.1:5238' + path, data=body, headers=headers, method=method)
         try:
             with self.opener.open(request, timeout=10) as response:
-                if response.status not in ({207} if method == 'REPORT' else {200} if method == 'GET' else {201, 204}):
+                if response.status not in ({207} if method in ('REPORT', 'PROPFIND') else {200} if method == 'GET' else {201, 204}):
                     raise TaskError(503, 'Unexpected task service response', 'invalid_response')
                 data = response.read(2097153)
                 if len(data) > 2097152:
@@ -174,6 +175,25 @@ class Bridge:
                             'conflict' if code in (404, 410, 412) else 'authorization_required' if code in (401, 403) else 'rate_limited' if code == 429 else 'backend_unavailable', retry) from None
         except (urllib.error.URLError, OSError):
             raise TaskError(503, 'Task service unavailable') from None
+
+    def list_name(self):
+        # Fixed collection, depth zero; never discover or migrate other lists.
+        body = b'<D:propfind xmlns:D="DAV:"><D:prop><D:displayname/></D:prop></D:propfind>'
+        _, _, data = self.dav('PROPFIND', COLLECTION, body)
+        if b'\0' in data or b'<!DOCTYPE' in data.upper() or b'<!ENTITY' in data.upper():
+            raise TaskError(503, 'Invalid list metadata')
+        root = ET.fromstring(data.decode('utf-8-sig'))
+        names = []
+        if root.tag == '{DAV:}multistatus':
+            for response in root.findall('{DAV:}response'):
+                if response.findtext('{DAV:}href') != COLLECTION:
+                    continue
+                for stat in response.findall('{DAV:}propstat'):
+                    if ' 200 ' in stat.findtext('{DAV:}status', ''):
+                        names.extend(x.text for x in stat.findall('{DAV:}prop/{DAV:}displayname'))
+        if len(names) != 1 or not names[0] or len(names[0]) > 120 or any(ord(c) < 32 for c in names[0]):
+            raise TaskError(503, 'Invalid list metadata')
+        return names[0]
 
     def snapshot(self, force=False):
         cached = self.load('snapshot', {'items': [], 'lastSuccess': None, 'stale': True})
@@ -214,8 +234,17 @@ class Bridge:
                 resources[identifier] = {'href': href, 'uid': uid, 'etag': etag, 'version': version}
                 if len(items) > 500:
                     raise TaskError(503, 'Demo collection item limit exceeded')
+            name = cached.get('list', 'Reminders')
+            metadata_stale = cached.get('metadataStale', False)
+            if self.clock() >= self.metadata_next:
+                try:
+                    name = self.list_name()
+                    metadata_stale = False
+                    self.metadata_next = self.clock() + 300
+                except Exception:
+                    metadata_stale = True
             snapshot = {'items': items, 'lastSuccess': datetime.now(timezone.utc).isoformat(), 'stale': False,
-                        'list': 'PF1007L Test', 'timezone': str(ZONE)}
+                        'list': name, 'metadataStale': metadata_stale, 'timezone': str(ZONE)}
             # All-or-nothing publication: a failed collection read never deletes items.
             self.publish(snapshot, resources)
             self.failures, self.last_error, self.next_attempt = 0, None, self.clock() + 15

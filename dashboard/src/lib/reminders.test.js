@@ -74,3 +74,12 @@ test('offline read-only projection recovers unchanged IDs and completion rights 
   assert.equal(projectReminders({ items: [item], stale: false }).tasks[0].canComplete, true);
   assert.equal(projectReminders({ items: [{ ...item, completed: true }], stale: false }).tasks.length, 0);
 });
+
+
+test('list metadata follows renames without becoming identity', async () => {
+  const { reminderListName } = await import('./reminders.js');
+  assert.equal(reminderListName({ list: 'Do It' }), 'Do It');
+  assert.equal(reminderListName({ list: 'School tasks' }), 'School tasks');
+  assert.equal(reminderListName({ list: '' }), 'Reminders');
+  assert.equal(reminderListName({ list: 'bad\nname' }), 'Reminders');
+});

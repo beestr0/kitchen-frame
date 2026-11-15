@@ -18,6 +18,8 @@ class CollectorTests(unittest.TestCase):
  def setUp(self):
   self.now=1000000;self.calls=[];self.fail=set();self.rows={}
   class Client:
+   def metadata(client,href):
+    return {'name':href.rstrip('/').split('/')[-1], 'color':None}
    def query_events(client,href,start,end):
     self.calls.append(href)
     if href in self.fail:raise CalendarError('Calendar transport unavailable')
@@ -28,6 +30,21 @@ class CollectorTests(unittest.TestCase):
  def collector(self,cfg=None,db=':memory:'):
   obj=Collector(cfg or config('work','home'),self.client,db,self.normalize,lambda:self.now)
   self.addCleanup(obj.db.close);return obj
+ def test_rename_color_identity_and_offline_restart(self):
+  with tempfile.TemporaryDirectory() as directory:
+   path=Path(directory)/'fixture.sqlite';c=self.collector(db=path)
+   self.rows[c.calendars[0]['href']]=[1];before=c.refresh();uid=before['events'][0]['uid']
+   with patch.object(self.client,'metadata',return_value={'name':'School','color':'#ABCDEF'}):
+    self.now+=301;after=c.refresh()
+   self.assertEqual(after['events'][0]['uid'],uid)
+   self.assertEqual(after['events'][0]['calendarName'],'School')
+   self.assertEqual(after['calendars'][0]['id'],'work')
+   self.assertEqual(after['events'][0]['color'],'#ABCDEF')
+   restarted=self.collector(db=path)
+   with patch.object(self.client,'metadata',side_effect=CalendarError('Calendar transport unavailable')):
+    stale=restarted.refresh()
+   self.assertTrue(stale['stale']);self.assertEqual(stale['events'][0]['calendarName'],'School')
+   self.assertEqual(stale['events'][0]['uid'],uid)
  def test_only_selected_calendars_and_successful_empty(self):
   c=self.collector();href=c.calendars[0]['href'];self.rows[href]=[1]
   first=c.refresh();self.assertEqual(len(first['events']),1);self.assertEqual(len(self.calls),2)

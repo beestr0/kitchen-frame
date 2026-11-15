@@ -45,6 +45,8 @@ class RecoveryTests(unittest.TestCase):
     def dav(self, method, path, body=None, etag=None):
         self.calls.append(method)
         if self.failure: raise self.failure
+        if method == 'PROPFIND':
+            return 207, {}, ('<D:multistatus xmlns:D="DAV:"><D:response><D:href>'+COLLECTION+'</D:href><D:propstat><D:status>HTTP/1.1 200 OK</D:status><D:prop><D:displayname>Do It</D:displayname></D:prop></D:propstat></D:response></D:multistatus>').encode()
         if method == 'REPORT': return 207, {}, report((COLLECTION + 'one.ics', self.etag, self.current))
         if method == 'GET': return 200, {'ETag': self.etag}, self.current.encode()
         self.assertEqual(method, 'PUT'); self.assertEqual(etag, self.etag)
@@ -54,6 +56,21 @@ class RecoveryTests(unittest.TestCase):
         return 204, {}, b''
 
     def complete(self): return self.bridge.complete(self.item['id'], self.item['version'], self.operation)
+
+    def test_list_rename_retains_task_identity_and_metadata_failure_keeps_name(self):
+        self.assertEqual(self.snapshot['list'], 'Do It')
+        original = self.bridge.list_name
+        self.bridge.list_name = lambda: 'Renamed fixture'
+        self.now += 301
+        changed = self.bridge.snapshot()
+        self.assertEqual(changed['list'], 'Renamed fixture')
+        self.assertEqual(changed['items'], self.snapshot['items'])
+        self.bridge.list_name = lambda: (_ for _ in ()).throw(TaskError(503, 'Unavailable'))
+        self.now += 301
+        stale = self.bridge.snapshot()
+        self.assertEqual(stale['list'], 'Renamed fixture')
+        self.assertTrue(stale['metadataStale']); self.assertFalse(stale['stale'])
+        self.bridge.list_name = original
 
     def test_backend_outage_retains_cache_backs_off_and_recovers_same_ids(self):
         self.failure = TaskError(503, 'Invented outage')
@@ -191,7 +208,7 @@ class RecoveryTests(unittest.TestCase):
         for _ in range(20):
             stale = self.bridge.snapshot(force=True)
             self.assertTrue(stale['stale'])
-        self.assertEqual(self.calls, ['REPORT'])
+        self.assertEqual(self.calls, ['REPORT', 'PROPFIND'])
 
     def test_state_symlink_is_rejected(self):
         link = Path(self.temp.name)/'link.sqlite'; link.symlink_to(self.path)
