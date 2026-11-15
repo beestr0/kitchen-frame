@@ -17,7 +17,7 @@ def main():
     if sum([candidate,rollback,hiveos,hive_rollback])>1:raise RuntimeError('Choose exactly one build variant')
     out=KIOSK/('build-auth-rollback' if rollback else 'build-auth-candidate') if candidate or rollback else OUT
     if hiveos or hive_rollback:out=KIOSK/('build-hiveos-rollback' if hive_rollback else 'build-hiveos')
-    prepare(out,offline=candidate or rollback or hiveos or hive_rollback,source_ref='94ccb0d' if candidate or rollback or hive_rollback else None)
+    prepare(out,offline=candidate or rollback or hiveos or hive_rollback,source_ref='94ccb0d' if candidate or rollback or hive_rollback else None,home=hiveos)
     if rollback:
         # Same version/signature as candidate: reinstall can preserve app data
         # without relying on Android's downgrade permission or uninstalling.

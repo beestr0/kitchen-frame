@@ -33,7 +33,7 @@ def fetch(group,artifact,version,extension,offline=False):
 def version_key(value):return tuple(int(v) for v in re.findall(r'\d+',value))
 
 
-def main(output=None, offline=False, source_ref=None):
+def main(output=None, offline=False, source_ref=None, home=False):
     out=Path(output) if output is not None else OUT
     out.mkdir(parents=True,exist_ok=True);CACHE.mkdir(exist_ok=True)
     queue=deque([('androidx.webkit','webkit','1.14.0')]);selected={}
@@ -102,7 +102,8 @@ def main(output=None, offline=False, source_ref=None):
     for name in ['LanTlsProxy.java','DeviceAuthController.java']:
         (source/'com/huntsyea/frame'/name).write_text(content('lan-tls/'+name))
     manifest=content('AndroidManifest.xml')
-    manifest=re.sub(r'^.*<category android:name="android.intent.category.HOME".*\n','',manifest,flags=re.M)
+    if not home:
+        manifest=re.sub(r'^.*<category android:name="android.intent.category.HOME".*\n','',manifest,flags=re.M)
     (out/'AndroidManifest.xml').write_text(manifest)
     (out/'dependencies.json').write_text(json.dumps({'jars':jars,'resources':resources,'packages':packages},indent=2))
     (KIOSK/'lan-tls/dependencies.lock.json').write_text(json.dumps([{k:v for k,v in item.items() if k!='path'} for item in selected.values()],indent=2))

@@ -88,10 +88,11 @@ public class MainActivity extends Activity {
       escapeArmed = false;
       new AlertDialog.Builder(MainActivity.this)
           .setTitle("HiveOS")
-          .setItems(new String[] {"Reload dashboard", "Android settings", "Device enrollment (demo)"}, (d, which) -> {
+          .setItems(new String[] {"Reload dashboard", "Android settings", "Device enrollment (demo)", "Home app settings"}, (d, which) -> {
             if (which == 0) web.reload();
             else if (which == 1) startActivity(new Intent(Settings.ACTION_SETTINGS));
-            else showDeviceEnrollment();
+            else if (which == 2) showDeviceEnrollment();
+            else startActivity(new Intent(Settings.ACTION_HOME_SETTINGS));
           })
           .setNegativeButton("Close", null)
           .show();
