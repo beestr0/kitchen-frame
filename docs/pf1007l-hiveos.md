@@ -210,3 +210,21 @@ networking. Automatic launch remains an optional blocked requirement pending a
 supported manufacturer control. No further reboot is needed to restore manual use.
 Next user action is one saved Wi-Fi edit and manual launch; only after that succeeds
 consider a separately agreed cold boot to validate network-profile persistence.
+
+
+## Final end-of-day state — owner confirmed static Wi-Fi works
+
+This section supersedes earlier pending static-configuration and launch-test steps.
+Owner saved Static IP10.157.1.146, gateway10.157.1.1, prefix24, DNS10.157.1.1 on the
+frame and confirmed HiveOS is connected and working. Existing router reservation,
+older .152 reservation and server guards remain unchanged. Manual HiveOS launch
+after a full reboot is the accepted workaround for manufacturer startup blocking;
+autostart is currently unsupported. Static-profile persistence across another cold
+boot is not yet verified; no additional reboot/test performed or required tonight.
+
+End-of-day read-only check: Calendar, Radicale, bridge, HTTP/HTTPS proxies, Jellyfin
+and Tailscale active and enabled; HTTPS health successful, upstreamErrors0. The
+Linux/frame deployment has no MacBook/Codex/Terminal/USB runtime dependency. No
+services restarted or other changes made. Development stopped; next-session summary
+and exact resume command are in NEXT_SESSION.md. Personal data/migration scope and
+all existing recovery safeguards remain unchanged.

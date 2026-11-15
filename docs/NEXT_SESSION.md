@@ -1,58 +1,73 @@
 # PF1007L — next session
 
-November 14, 2026: **persistent device authentication activated and demo acceptance
-passed**. Branch `feat/pf1007l-https-weather-handoff`; reviewed core checkpoint
-`8aade81` supplies the deployed core. The following Git checkpoint records the
-verified activation tooling, recovery tests and documentation. Use `git log -1`
-and the branch upstream to identify its final commit; no deployment is required
-to restore this source checkpoint. No production/personal migration is authorized.
+## End-of-day handoff — November 14, 2026
 
-## Latest supervised cold boot failed — resolve before declaring launch complete
+**Owner confirmed static Wi-Fi is saved and HiveOS is connected and working.**
+Development is stopped for tonight. Branch `feat/pf1007l-https-weather-handoff`.
+Read this handoff before doing anything; do not repeat setup, installation or passed
+Calendar/Reminders/authentication tests. No production/personal Reminders migration
+is authorized. Use `git log -1` and upstream to identify the final handoff commit.
 
-Owner saved router reservation for pre-boot MAC at .146; older .152 reservation must
-remain untouched. One approved physical cold boot: Android boots, HiveOS does not
-autostart, manual launch shows reachability error. USB confirms changed Wi-Fi MAC
-and IP **10.157.1.25**, correct clock, v6 intact. Exact-IP guards still require .146.
-Vendor log explicitly blocks BOOT_COMPLETED for com.huntsyea.frame; background user
-whitelist empty. Services healthy. No second reboot or network/launcher/firmware
-change. See HiveOS runbook failure report. Next: supported stable Android Wi-Fi
-configuration and vendor per-app startup permission; neither applied yet. Prior
-v6 rendering/performance results below predate this cold boot.
+Current working configuration:
 
-Bounded follow-up concluded: supported static Wi-Fi profile is the recommended
-minimal fix (.146/gateway.1/prefix24/DNS.1); it is **not applied yet**. No stable-MAC
-selector or exposed vendor per-app startup control was found. Read-only vendor API
-inspection found no explicit allowlist setter; no policy methods invoked. Prioritize
-manual launch after static configuration; autostart remains blocked rather than
-changing protected vendor policy/launcher. No further reboot or allowlist changes.
+- PF1007L saved Wi-Fi profile: **Static IP10.157.1.146**, gateway10.157.1.1,
+  network prefix24, DNS10.157.1.1. Applied and confirmed working by owner, not Codex.
+- Router reservation at .146 and server exact-IP guards unchanged. Separate older
+  HiveOS reservation at .152 with another MAC must remain untouched.
+- HiveOS v6/1.5-hiveos, package com.huntsyea.frame, activity .MainActivity, UID10026,
+  original signer, saved URL and enrolled key preserved. No uninstall/data clearing.
+- Live selected read-only Apple Calendar, demo Reminders, Siri, persistent device
+  authentication, weather, auto themes and existing controls remain the working
+  deployment. Last measured v6 performance60.1627FPS predates the cold-boot test;
+  no new performance or integration test was requested tonight.
+- Linux Calendar collector, Radicale demo, auth/Reminders bridge, HTTP weather proxy,
+  HTTPS dashboard proxy, Jellyfin and Tailscale all **active and enabled** in final
+  read-only check. HTTPS health returned successfully with upstreamErrors0.
+- Collectors, weather proxy, credential storage, session renewal and private Serve
+  run on Linux/frame, independent of MacBook, Codex, USB or interactive Terminal.
+  Keep Linux server/router/frame powered and network available. No service restarts,
+  network edits, installs or additional physical tests performed during handoff.
 
-## Mounted frame restored; HiveOS v6 active
+### Accepted boot limitation and recovery
 
-Read [HiveOS recovery, artifacts and rollback](pf1007l-hiveos.md). USB connected;
-wireless ADB was not enabled. DHCP moved frame .76→**10.157.1.146**, causing exact-IP
-HTTPS/firewall/bridge guards to reject it. Approved repair completed; do not repeat
-installation or sudo. Root-private network/config/consistent SQLite backup:
+One supervised cold boot exposed vendor changing Wi-Fi MAC (DHCP assigned .25) and
+BackgroundManagerService blocking HiveOS BOOT_COMPLETED. Static profile now restores
+manual use without changing the allowlist. **Automatic launch after full reboot is
+currently unsupported on this firmware; manual HiveOS launch is the accepted
+workaround.** No supported startup settings/explicit allowlist setter found. Do not
+modify protected vendor policy, replace the launcher or claim boot autostart works.
+Static-profile persistence across a subsequent cold boot remains unverified; no new
+reboot is authorized by this handoff. Retry/error screen and Android Settings remain
+available; default launcher, HomeHQ and manufacturer splash are unchanged.
+
+See [HiveOS runbook and signed rollback](pf1007l-hiveos.md). Private network/config
+backup and consistent task SQLite snapshot:
 `/var/backups/pf1007l-network/repair-20261115T003609Z-4c550191`.
+Same-version/same-signer rollback APK is retained privately. Do not deploy rollback,
+reset credentials, clear application data or repeat network repair without cause.
+WebView debugging was disabled and temporary USB forwarding removed after v6 tests.
 
-Owner approved HiveOS v6 in-place update and kiosk-only restart. Installation passed:
-com.huntsyea.frame/.MainActivity, version6/1.5-hiveos, original signer, UID10026;
-whole native settings hash unchanged, authentication key and saved URL preserved.
-Actual frame: live Calendar109/two calendars/fresh, Reminders10/fresh, weather and
-device-v1 session200; security rejection checks passed, **60.1627FPS**, zero >50ms.
-Native HiveOS/subtitle/error/Retry/Settings verified using WebView-only offline
-simulation; automatic recovery9.287s. Debugging OFF and USB forwarding removed.
-All seven Linux services checked active; HomeHQ/default launcher untouched.
+### Remaining limits and next priorities — no work started
 
-Same-version/same-signer rollback APK retained and documented; no uninstall/data
-clearing/re-enrollment/reboot. BOOT receiver/permission verified, no HOME category;
-synthetic broadcasts did not establish foreground autolaunch. **Physical boot remains
-unverified**: prepare one controlled power-cycle only after explicit permission.
-Manufacturer splash/firmware remain unchanged. First reserve current .146 in router
-DHCP using private local MAC record (see runbook); no router changes were made.
-Exact-IP allowlist remains narrow and future address changes still fail closed.
+1. Use the wall-mounted dashboard normally; manual launch after power loss accepted.
+2. Only if requested, verify saved static profile across one agreed future cold boot.
+   No further autostart investigation unless a supported manufacturer option emerges.
+3. Recurring Reminder completion remains disabled; use disposable automated fixtures
+   before considering support. No migration or production sync without approval.
+4. Background iPhone timing has no guaranteed SLA. Existing Calendar refresh is
+   five-minute upstream plus up to one-minute frame polling. Preserve read-only scope.
 
-Next: one short visual acceptance and, after reservation/permission, one controlled
-boot test. Do not repeat unchanged Calendar/Reminders/Siri/cellular round trips.
+Resume tomorrow from a native Terminal:
+
+```sh
+cd /Users/beestrother/Projects/kitchen-frame && codex "Read docs/NEXT_SESSION.md and docs/pf1007l-hiveos.md. Review Git status. Preserve the working static-IP HiveOS deployment and accepted manual-launch workaround. Summarize the handoff before making changes."
+```
+
+For Linux inspection use persistent `ssh pf1007l-mint`; no temporary control socket.
+No sudo/observer Terminal is required for ongoing dashboard operation. Closing
+Codex/Terminal or sleeping/shutting down the MacBook does not stop these services.
+
+## Earlier verified integration details (historical observations)
 
 ## Live Apple Calendar activated and physically accepted
 
