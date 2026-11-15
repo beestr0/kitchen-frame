@@ -151,3 +151,62 @@ After reservation and explicit approval for one power cycle:
 
 No physical power cycle has been performed in this update. Recurring Reminder
 completion and production/personal Reminders migration remain outside this work.
+
+
+## Supervised cold-boot result — failed, November 14, 2026
+
+Owner confirmed router reservation for the previously observed Wi-Fi MAC at .146;
+separate older .152 reservation was explicitly left untouched. One authorized cold
+boot completed. Android booted, but HiveOS did not auto-launch. Manual launch showed
+the generic reachability/retry error. No further reboot was performed.
+
+USB diagnostics established two independent causes:
+
+- Firmware presented a different wlan0 MAC after cold boot and received
+  **10.157.1.25**, despite the reservation for the pre-boot MAC. Clock was correct,
+  Wi-Fi enabled, installed v6 and enrolled application data intact. Exact-IP guards
+  remained narrow; load failed with ERR_TIMED_OUT. A MAC-only reservation is not
+  sufficient on this firmware. Do not repeatedly rewrite the server allowlist.
+- Manufacturer BackgroundManagerService logged `prevent from boot complete
+  broadcast: com.huntsyea.frame` and `package not in whitelist`. BOOT_COMPLETED
+  permission remains granted; user background whitelist is empty. This is explicit
+  vendor suppression, not evidence of lost APK registration.
+
+Calendar, Radicale, bridge, HTTPS and Tailscale services checked active. No router,
+launcher, firmware, server guard, app data or credentials changed during diagnosis.
+Proposed next steps: supported Android Wi-Fi static IPv4 configuration using the
+reserved .146 (after confirming router exclusion), and a supported vendor per-app
+autostart/background permission if available. Neither is applied yet. Boot acceptance
+and the final successful-setup checkpoint remain pending; do not report a pass.
+
+
+## Bounded follow-up: stable manual use first
+
+Android 6.0.1 installed Settings resources explicitly include Wi-Fi IP settings,
+static/DHCP selection and IP/gateway/prefix/DNS validation. No per-network
+randomized/device-MAC selector or vendor startup/allowlist UI was found in the
+inspected Settings resources/activities. This is not a claim that undocumented
+firmware controls cannot exist. No protected files or services were modified.
+
+Recommended supported network fix: change only the existing Android Wi-Fi profile
+to Static, IP10.157.1.146, gateway10.157.1.1, prefix24, DNS10.157.1.1. Owner has
+reserved .146 at the router; keep it excluded from other DHCP allocation. Do not
+forget the network or alter credentials. This avoids dependence on the changing
+MAC and preserves exact-IP plus device-key authentication. Static settings should
+persist as part of the saved network profile; survival of cold boot is still
+unverified. Revert the profile to DHCP to undo it, with expected dashboard denial
+if the assigned address differs. No static configuration was applied by Codex.
+
+Read-only reflection of installed android.aw.BackgroundManager/IBackgroundManager
+found managerPackage(String,long), allowBackgroundTask and internal lifecycle
+methods, but no explicit public user-allowlist setter. None were invoked. Persistence
+and security meaning of managerPackage are unknown; do not experiment with it,
+edit vendor whitelists, disable BackgroundManagerService or change the launcher.
+Android battery-optimization exemption has not been shown to override this vendor
+boot block and is not presented as a fix.
+
+Practical fallback: keep manual HiveOS launch after an outage, after fixing static
+networking. Automatic launch remains an optional blocked requirement pending a
+supported manufacturer control. No further reboot is needed to restore manual use.
+Next user action is one saved Wi-Fi edit and manual launch; only after that succeeds
+consider a separately agreed cold boot to validate network-profile persistence.

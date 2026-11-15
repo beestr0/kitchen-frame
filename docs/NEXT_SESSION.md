@@ -7,6 +7,25 @@ verified activation tooling, recovery tests and documentation. Use `git log -1`
 and the branch upstream to identify its final commit; no deployment is required
 to restore this source checkpoint. No production/personal migration is authorized.
 
+## Latest supervised cold boot failed — resolve before declaring launch complete
+
+Owner saved router reservation for pre-boot MAC at .146; older .152 reservation must
+remain untouched. One approved physical cold boot: Android boots, HiveOS does not
+autostart, manual launch shows reachability error. USB confirms changed Wi-Fi MAC
+and IP **10.157.1.25**, correct clock, v6 intact. Exact-IP guards still require .146.
+Vendor log explicitly blocks BOOT_COMPLETED for com.huntsyea.frame; background user
+whitelist empty. Services healthy. No second reboot or network/launcher/firmware
+change. See HiveOS runbook failure report. Next: supported stable Android Wi-Fi
+configuration and vendor per-app startup permission; neither applied yet. Prior
+v6 rendering/performance results below predate this cold boot.
+
+Bounded follow-up concluded: supported static Wi-Fi profile is the recommended
+minimal fix (.146/gateway.1/prefix24/DNS.1); it is **not applied yet**. No stable-MAC
+selector or exposed vendor per-app startup control was found. Read-only vendor API
+inspection found no explicit allowlist setter; no policy methods invoked. Prioritize
+manual launch after static configuration; autostart remains blocked rather than
+changing protected vendor policy/launcher. No further reboot or allowlist changes.
+
 ## Mounted frame restored; HiveOS v6 active
 
 Read [HiveOS recovery, artifacts and rollback](pf1007l-hiveos.md). USB connected;
